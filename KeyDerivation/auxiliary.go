@@ -174,8 +174,8 @@ func ToWIF(privateKey []byte, netType string) string {
 	return base58.Encode(wif)
 }
 
-// 计算WIFg
-func getAddressByWIF(keywif string) (string, error) {
+// 根据wif私钥获取对应的地址
+func GetAddressByWIF(keywif string) (string, error) {
 	// 解析WIF格式
 	privKey, err := btcutil.DecodeWIF(keywif)
 	if err != nil {
