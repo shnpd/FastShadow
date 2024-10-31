@@ -73,7 +73,8 @@ func main() {
 	}
 
 	//	签名交易
-	signedTx, complete, err := client.SignRawTransaction(rawTx)
+	t := "1234"
+	signedTx, complete, err := client.SignRawTransaction(rawTx, &t)
 	if err != nil {
 		log.Fatalf("Error signing transaction: %v", err)
 	}

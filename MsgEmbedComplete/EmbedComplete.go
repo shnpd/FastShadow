@@ -3,35 +3,15 @@ package main
 import (
 	"covertCommunication/KeyDerivation"
 	"fmt"
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/rpcclient"
-	"log"
-)
-
-const (
-	//待嵌入消息
-	Covertmsg = "Hello! This is Shihaonan, and i will send a message based blockchain, best wishes!"
-)
-
-var (
-	pkroot   *KeyDerivation.PublicKey      //根公钥
-	skroot   *KeyDerivation.PrivateKey     //根私钥
-	initSeed []byte                        //初始种子
-	prikSet  [][]*KeyDerivation.PrivateKey //私钥集合,每次消息传递需要一个私钥数组
-	pubkSet  [][]*KeyDerivation.PublicKey  //公钥集合
-	address  [][]string                    //地址集合
-	client   *rpcclient.Client             //客户端
-	num      int                           //通信序号
 )
 
 // init 生成根密钥对
 func init() {
-	//根据初始化种子生成根密钥对
-	initSeed = []byte("initseed")
-	skroot, _ = KeyDerivation.GenerateMasterKey(initSeed)
+	skroot, _ = KeyDerivation.GenerateMasterKey([]byte("initseed"))
 	pkroot = KeyDerivation.EntirePublicKeyForPrivateKey(skroot)
+	bankRoot, _ = KeyDerivation.GenerateMasterKey([]byte("bank"))
+	kleak = "leak Random"
 }
 
 // 初始化钱包
@@ -49,135 +29,147 @@ func initWallet() {
 	// 创建新的RPC客户端
 	client, _ = rpcclient.New(connCfg, nil)
 	client.WalletPassphrase("ts0", 6000)
-}
 
-// 预先生成第1组私钥,后续第num次通信生成第num+1组私钥,生成num->num+1的交易
+	//	预先生成第一组私钥,预保存5个UTXO
+	generateNewCntPrivKeys(5)
+}
 
 func main() {
 	initWallet()
 	defer client.Shutdown()
 
-	//基于skroot派生两个私钥，一个用来发送，一个用来接收
-	sk1, _ := skroot.ChildPrivateKeyDeprive(1)
-	sk2, _ := skroot.ChildPrivateKeyDeprive(2)
-	//	将私钥转化为密钥种子
-	seed1 := sk1.SerializePriv()
-	seed2 := sk2.SerializePriv()
 	//	计算嵌入消息的字节数，每个交易可以嵌入32字节
 	byteCnt := len([]byte(Covertmsg))
 	msgCnt := (byteCnt + 31) / 32
 	// 字符串每32字节划分
 	splitMsg := splitStr()
-	//	生成addrCnt个私钥以备嵌入
-	generatePrivKey(msgCnt, seed1)
-	generatePrivKey(msgCnt, seed2)
-	//	将私钥导入钱包以便发送交易
-	for i := 0; i < msgCnt; i++ {
-		prikWIF := KeyDerivation.ToWIF(prikSet[0][i].Key, "simnet")
-		wif, _ := btcutil.DecodeWIF(prikWIF)
-		err := client.ImportPrivKey(wif)
-		if err != nil {
-			log.Fatalf("ImportPrivKey error: %s", err)
+
+	//	生成msgCnt个私钥用来接收交易
+	generateNewCntPrivKeys(msgCnt)
+
+	//通信轮数=一层私钥数-1
+	//第i轮通信为i-1到i的交易
+	commId = len(layer1Prik) - 1
+	updateMapUTXOFromAddr()
+	// 使用银行地址集平衡UTXO数量
+	transferBank(commId-1, msgCnt)
+	updateMapUTXOFromAddr()
+
+	//	发送隐蔽交易
+	var covertTxid []string
+	covertTxid = sendCovertTransaction(commId-1, msgCnt, splitMsg)
+	for _, v := range covertTxid {
+		fmt.Printf("Covert transaction id: %s\n", v)
+	}
+
+	// 发送泄露交易
+	sendLeakTrans(commId)
+}
+
+func sendLeakTrans(commId int) {
+	sourceAddr := KeyDerivation.GetAddressByPrivKey(layer1Prik[commId])
+	rawTx := generateTrans(sourceAddr, "SiGGuKwQ2WP1uZ63TBVk1E6mb3qPyqrnEg")
+	signedTx := signTrans(rawTx, &kleak)
+	broadTrans(signedTx)
+}
+
+// 第commid次通信，处理银行地址，多退少补
+func transferBank(commId, msgCnt int) {
+	utxoNum := len(prikSet[commId])
+
+	//utxo有多余
+	if utxoNum > msgCnt {
+		minus := utxoNum - msgCnt
+		generateCntBankKeys(minus)
+		for i := 0; i < minus; i++ {
+			// 创建转出交易
+			sourceAddr := addressSet[commId][msgCnt+i]
+
+			destAddr := KeyDerivation.GetAddressByPrivKey(bankPriks[len(bankPriks)-i-1])
+			rawTx := generateTrans(sourceAddr, destAddr)
+			// 签名交易，该交易不嵌入信息
+			signedTx := signTrans(rawTx, nil)
+			broadTrans(signedTx)
+		}
+	} else {
+		//	utxo数量不足
+		minus := msgCnt - utxoNum
+		for i := 0; i < minus; i++ {
+			//提取银行地址(默认银行地址足够用)
+			bankPrik_t := bankPriks[0]
+			bankPriks = bankPriks[1:]
+			sourceAddr := KeyDerivation.GetAddressByPrivKey(bankPrik_t)
+			// 生成地址接收银行utxo
+			addCntPrivKeys(commId, minus)
+			destAddr := addressSet[commId][utxoNum+i]
+			rawTx := generateTrans(sourceAddr, destAddr)
+			signedTx := signTrans(rawTx, nil)
+			broadTrans(signedTx)
 		}
 	}
-
-	// 保存私钥对应的地址以便筛选交易
-	saveAddress(0, msgCnt)
-	saveAddress(1, msgCnt)
-
-	//	发送交易
-	var covertTxid []string
-	covertTxid = sendCovertTransaction(msgCnt, splitMsg)
-	for _, v := range covertTxid {
-		fmt.Printf("Covert transaction id:", v)
-	}
 }
 
-// 派生嵌入私钥
-func generatePrivKey(cnt int, seed []byte) {
-	var privSetTemp []*KeyDerivation.PrivateKey
-	masterKey1, _ := KeyDerivation.GenerateMasterKey(seed)
-	for i := 0; i < cnt; i++ {
-		key, _ := masterKey1.ChildPrivateKeyDeprive(uint32(i))
-		privSetTemp = append(privSetTemp, key)
-	}
-	prikSet = append(prikSet, privSetTemp)
-}
-
-// 保存第num组私钥对应的地址
-func saveAddress(num, cnt int) {
+// generateNewCntPrivKey 新生成一个一层私钥，并在这个私钥下派生cnt个私钥，返回一层私钥的序号
+func generateNewCntPrivKeys(cnt int) int {
+	parentPrik, _ := skroot.ChildPrivateKeyDeprive(uint32(len(layer1Prik)))
+	layer1Prik = append(layer1Prik, parentPrik)
+	var priksetTemp []*KeyDerivation.PrivateKey
 	var addressTemp []string
 	for i := 0; i < cnt; i++ {
-		prikWIF := KeyDerivation.ToWIF(prikSet[num][i].Key, "simnet")
-		addressByWIF, _ := KeyDerivation.GetAddressByWIF(prikWIF)
-		addressTemp = append(addressTemp, addressByWIF)
+		key, _ := parentPrik.ChildPrivateKeyDeprive(uint32(i))
+		importKeyToWallet(key)
+		priksetTemp = append(priksetTemp, key)
+		//更新地址集
+		addressTemp = append(addressTemp, KeyDerivation.GetAddressByPrivKey(key))
 	}
-	address = append(address, addressTemp)
+	prikSet = append(prikSet, priksetTemp)
+	addressSet = append(addressSet, addressTemp)
+	return len(layer1Prik)
 }
 
-// 将字符串每32字节划分
-func splitStr() []string {
-	byteSlice := []byte(Covertmsg)
-	chunkSize := 32
-	var chunks []string
-
-	for i := 0; i < len(byteSlice); i += chunkSize {
-		end := i + chunkSize
-		if end > len(byteSlice) {
-			end = len(byteSlice)
-		}
-		chunks = append(chunks, string(byteSlice[i:end]))
+// addCntPrivKeys 为第i组密钥追加派生cnt个密钥
+func addCntPrivKeys(id, cnt int) {
+	parentPrik := layer1Prik[id]
+	lenPrik := len(prikSet[id])
+	for i := 0; i < cnt; i++ {
+		key, _ := parentPrik.ChildPrivateKeyDeprive(uint32(lenPrik + i))
+		importKeyToWallet(key)
+		prikSet[id] = append(prikSet[id], key)
+		//更新地址集
+		addressSet[id] = append(addressSet[id], KeyDerivation.GetAddressByPrivKey(key))
 	}
-	return chunks
 }
 
-// 发送隐蔽交易
-func sendCovertTransaction(msgCnt int, splitMsg []string) (covertTxid []string) {
-	//	计算地址到UTXO的映射
+// generateCntBankKeys 生成cnt个银行地址
+func generateCntBankKeys(cnt int) {
+	parentKey := bankRoot
+	for i := 0; i < cnt; i++ {
+		key, _ := parentKey.ChildPrivateKeyDeprive(uint32(bankId))
+		importKeyToWallet(key)
+		bankPriks = append(bankPriks, key)
+		bankId++
+	}
+}
+
+// 更新地址持有UTXO的映射
+func updateMapUTXOFromAddr() {
 	allUTXO, _ := client.ListUnspent()
-	UTXObyAddress := make(map[string][]btcjson.ListUnspentResult)
 	for _, utxo := range allUTXO {
 		UTXObyAddress[utxo.Address] = append(UTXObyAddress[utxo.Address], utxo)
 	}
+}
+
+// 发送隐蔽交易
+func sendCovertTransaction(commId, msgCnt int, splitMsg []string) (covertTxid []string) {
 	//	构造addrcnt个隐蔽交易,每个交易只有1个输入1个输出
 	for i := 0; i < msgCnt; i++ {
-		// 构造输入
-		var inputs []btcjson.TransactionInput
-		if len(UTXObyAddress[address[0][i]]) == 0 {
-			log.Fatalf("%s have not UTXO", address[0][i])
-		}
-		utxo := UTXObyAddress[address[0][i]][0]
-		inputs = append(inputs, btcjson.TransactionInput{
-			Txid: utxo.TxID,
-			Vout: utxo.Vout,
-		})
-		//	构造输出
-		destinationAddress := address[1][i]
-		destAddr, _ := btcutil.DecodeAddress(destinationAddress, &chaincfg.SimNetParams)
-		outputs := map[btcutil.Address]btcutil.Amount{
-			destAddr: btcutil.Amount(1),
-		}
-		//	创建交易
-		rawTx, err := client.CreateRawTransaction(inputs, outputs, nil)
-		if err != nil {
-			log.Fatalf("Error creating raw transaction: %v", err)
-		}
+		// 创建交易
+		rawTx := generateTrans(addressSet[commId][i], addressSet[commId+1][i])
 		//	签名交易(嵌入消息)
-		coverMsg := splitMsg[i]
-		signedTx, complete, err := client.SignRawTransaction(rawTx, &coverMsg)
-		if err != nil {
-			log.Fatalf("Error signing transaction: %v", err)
-		}
-		if !complete {
-			log.Fatalf("Transaction signing incomplete")
-		}
-
+		signedTx := signTrans(rawTx, &splitMsg[i])
 		//	广播交易
-		txHash, err := client.SendRawTransaction(signedTx, false)
-		if err != nil {
-			log.Fatalf("Error sending transaction: %v", err)
-		}
-		covertTxid = append(covertTxid, txHash.String())
+		txId := broadTrans(signedTx)
+		covertTxid = append(covertTxid, txId)
 	}
 	return covertTxid
 }

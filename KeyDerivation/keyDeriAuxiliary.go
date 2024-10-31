@@ -8,6 +8,7 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil/base58"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"golang.org/x/crypto/ripemd160"
 	"io"
 	"log"
@@ -192,4 +193,22 @@ func GetAddressByWIF(keywif string) (string, error) {
 	}
 	// 输出地址
 	return addr.EncodeAddress(), nil
+}
+
+// 根据PrivateKey获取对应的地址
+func GetAddressByPrivKey(key *PrivateKey) string {
+	prikWIF := ToWIF(key.Key, "simnet")
+	address, _ := GetAddressByWIF(prikWIF)
+	return address
+}
+
+// 根据PublicKey获取对应的地址
+func GetAddressByPubKey(key *PublicKey) string {
+	// 生成地址
+	pubKey, err := secp256k1.ParsePubKey(key.Key)
+	if err != nil {
+		log.Fatalf("get address error %s", err)
+	}
+	addr, err := btcutil.NewAddressPubKey(pubKey.SerializeUncompressed(), &chaincfg.SimNetParams)
+	return addr.EncodeAddress()
 }
