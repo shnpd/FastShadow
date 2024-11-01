@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -10,13 +11,13 @@ import (
 
 const btc = 1000000000
 
-//func main() {
-//	initWallet()
-//	rawtx := generateTransFromUTXO("3baeb892ff56ef2eef967c77ffc9995e799307e08ed471780d22386ea52a31d2", "STGeYnmKs1XRRUdY5xBWQgkDe12XM69uPR")
-//	signtx := signTrans2(rawtx, nil)
-//
-//	fmt.Println(broadTrans2(signtx))
-//}
+func main() {
+	initWallet()
+	rawtx := generateTransFromUTXO("955685970388efecbd862c451a8f1c0812c81a706e7eb534bd404761e8713822", "SNb2cVFfzTW4ecMyRg7DncL4vKbFka9mGA")
+	signtx := signTrans2(rawtx, nil)
+
+	fmt.Println(broadTrans2(signtx))
+}
 
 // 生成sourceAddr到destAddr的原始交易（将UTXO全部转给目标地址，没有交易费）
 func generateTransFromUTXO(txid, destAddr string) *wire.MsgTx {
