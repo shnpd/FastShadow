@@ -4,8 +4,13 @@ import (
 	"covertCommunication/KeyDerivation"
 	"fmt"
 	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
+	"github.com/btcsuite/btcd/wire"
+	"log"
+	"time"
 )
 
 // init 生成根密钥对
@@ -38,68 +43,149 @@ func InitWallet() *rpcclient.Client {
 	return Client
 }
 
+// 在执行此函数前首先执行test_transfer函数，向第0组地址转入utxo以便进行交易
+// 在执行本函数时会循环执行十次嵌入操作，每次循环包括 生成地址-划分消息-平衡银行地址-发送隐蔽交易-发送泄露交易-向下一组地址的主密钥转入utxo以便其发送泄露交易
+// 记录每次操作的时间延迟（因为银行地址每次的交易数量都不同，计算时间时暂时忽略银行地址）
 func main() {
 	InitWallet()
 	defer Client.Shutdown()
-
-	//通信轮数
-	round := 1
-	err := GenerateNewCntPrivKeys(round-1, 15)
-	if err != nil {
-		return
-	}
-	//	计算嵌入消息的字节数以及需要的隐蔽交易数（每个交易可以嵌入32字节）
-	// 添加结束标志
 	Covertmsg += EndFlag
-	byteCnt := len([]byte(Covertmsg))
-	msgCnt := (byteCnt + 31) / 32
-	// 字符串每32字节划分
-	splitMsg := SplitStrBy32bytes(Covertmsg)
 
-	//生成msgCnt个私钥用来接收交易
-	err = GenerateNewCntPrivKeys(round, msgCnt)
-	if err != nil {
-		fmt.Println(err)
-		return
+	for round := 1; round <= 10; round++ {
+		err := GenerateNewCntPrivKeys(round-1, 15)
+		if err != nil {
+			return
+		}
+		//	计算嵌入消息的字节数以及需要的隐蔽交易数（每个交易可以嵌入32字节）
+		// 添加结束标志
+
+		byteCnt := len([]byte(Covertmsg))
+		msgCnt := (byteCnt + 31) / 32
+		// 字符串每32字节划分
+		splitMsg := SplitStrBy32bytes(Covertmsg)
+		if round == 1 {
+			fmt.Println(msgCnt)
+		}
+		//生成msgCnt个私钥用来接收交易
+		err = GenerateNewCntPrivKeys(round, msgCnt)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		err = UpdateMapUTXOFromAddr()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		//使用银行地址集平衡发送地址集的UTXO数量
+		err = TransferBank(round, msgCnt)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = UpdateMapUTXOFromAddr()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		start := time.Now()
+		//	发送隐蔽交易
+		//var covertTxid []*chainhash.Hash
+		//covertTxid, err = sendCovertTransaction(round, msgCnt, splitMsg)
+		_, err = SendCovertTransaction(round, msgCnt, splitMsg)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		//for _, v := range covertTxid {
+		//	fmt.Printf("Covert transaction id: %s\n", v.String())
+		//}
+
+		// 模拟时延
+		Covertmsg += ""
+		byteCnt = len([]byte(Covertmsg))
+		msgCnt = (byteCnt + 31) / 32
+		SplitStrBy32bytes(Covertmsg)
+
+		// 发送泄露交易
+		//leakTrans, err := sendLeakTrans(round)
+		_, err = SendLeakTrans(round)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		//fmt.Printf("leak transaction id: %s\n", leakTrans.String())
+		duration := time.Since(start)
+		fmt.Println(duration)
+		transMsk(round)
+		_, err = Client.Generate(1)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
 
-	err = UpdateMapUTXOFromAddr()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+}
 
-	//使用银行地址集平衡发送地址集的UTXO数量
-	err = TransferBank(round, msgCnt)
+// transMsk 为第主密钥发送utxo以便发出泄露交易
+func transMsk(mskId int) {
+	destAddr, _ := KeyDerivation.GetAddressByPrivKey(MskSet[mskId])
+	utxo := UTXObyAddress[MiningAddr][1]
+	sourceTxid := utxo.TxID
+	rawTx := generateTransFromUTXO(sourceTxid, destAddr, utxo.Amount)
+	signTx, err := signTrans(rawTx, nil)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalf("Error: %s", err)
 	}
-	err = UpdateMapUTXOFromAddr()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	broadTrans(signTx)
+}
 
-	//	发送隐蔽交易
-	var covertTxid []*chainhash.Hash
-	covertTxid, err = SendCovertTransaction(round, msgCnt, splitMsg)
+// 广播交易
+func broadTrans(signedTx *wire.MsgTx) string {
+	txHash, err := Client.SendRawTransaction(signedTx, false)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalf("Error sending transaction: %v", err)
 	}
-	for _, v := range covertTxid {
-		fmt.Printf("Covert transaction id: %s\n", v.String())
-	}
+	return txHash.String()
+}
 
-	// 发送泄露交易
-	leakTrans, err := SendLeakTrans(round)
+// 签名交易，嵌入秘密消息
+func signTrans(rawTx *wire.MsgTx, embedMsg *string) (*wire.MsgTx, error) {
+	signedTx, complete, err, _ := Client.SignRawTransaction(rawTx, embedMsg)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalf("Error signing transaction: %v", err)
 	}
-	fmt.Printf("leak transaction id: %s\n", leakTrans.String())
-	Client.Generate(1)
+	if !complete {
+		log.Fatalf("Transaction signing incomplete")
+	}
+	return signedTx, nil
+}
+
+// 生成sourceAddr到destAddr的原始交易（将UTXO全部转给目标地址，没有交易费）
+func generateTransFromUTXO(txid, destAddr string, amount float64) *wire.MsgTx {
+	// 构造输入
+	var inputs []btcjson.TransactionInput
+	inputs = append(inputs, btcjson.TransactionInput{
+		Txid: txid,
+		Vout: 0,
+	})
+	//	构造输出
+	outAddr, _ := btcutil.DecodeAddress(destAddr, &chaincfg.SimNetParams)
+	outputs := map[btcutil.Address]btcutil.Amount{
+		outAddr: btcutil.Amount((amount - 0.1) * 1e8),
+	}
+	//	创建交易
+	rawTx, err := Client.CreateRawTransaction(inputs, outputs, nil)
+	if err != nil {
+		log.Fatalf("Error creating raw transaction: %v", err)
+	}
+	return rawTx
 }
 
 // TODO:生成银行地址作为接收地址
@@ -110,7 +196,7 @@ func SendLeakTrans(round int) (*chainhash.Hash, error) {
 	if err != nil {
 		return nil, err
 	}
-	rawTx, err := GenerateTrans(sourceAddr, "SYZPAZEjXy7S4jbsUHqWUgv2FYomsR3RVS")
+	rawTx, err := GenerateTrans(sourceAddr, "ShRsmfcjFsNnGks4SiXWH2LNEravJmdbYd")
 	if err != nil {
 		return nil, err
 	}

@@ -35,7 +35,7 @@ func GenerateTrans(sourceAddr, destAddr string) (*CovertMsgTx, error) {
 		return nil, err
 	}
 	outputs := map[btcutil.Address]btcutil.Amount{
-		outAddr: btcutil.Amount(utxo.Amount * 1e7),
+		outAddr: btcutil.Amount((utxo.Amount - 0.1) * 1e8),
 	}
 	//	创建交易
 	rawTx, err := Client.CreateRawTransaction(inputs, outputs, nil)

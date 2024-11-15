@@ -1,9 +1,12 @@
+// 该文件与MsgExtractComplete/ExtractComplete.go 基本一致，但是为了模拟测试主网下的时间延迟，
+// 我们通过调用第三方api的方法来根据输入地址筛选交易，具体表现为使用filterTransByInputaddrByAPI()代替filterTransByInputaddr()
 package main
 
 import (
 	"bytes"
 	"covertCommunication/KeyDerivation"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -12,7 +15,10 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
+	"log"
+	"net/http"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -46,37 +52,46 @@ func initWallet() {
 		fmt.Println(err)
 	}
 }
-func main() {
 
+// 循环执行十次每次都从第0组地址提取秘密消息
+func main() {
 	initWallet()
 	defer client.Shutdown()
 	round := 1
+	for i := 0; i < 10; i++ {
+		start := time.Now()
+		kleak := new(secp256k1.ModNScalar)
+		kleakStr = "leak Random"
+		k_str_byte := []byte(kleakStr)
+		kleak.SetByteSlice(k_str_byte)
+		// 过滤泄露交易id
+		leakId, mAddr, err := filterLeakTx(round)
 
-	kleak := new(secp256k1.ModNScalar)
-	kleakStr = "leak Random"
-	k_str_byte := []byte(kleakStr)
-	kleak.SetByteSlice(k_str_byte)
-	// 过滤泄露交易id
-	leakId, mAddr, err := filterLeakTx(round)
-	if err != nil {
-		fmt.Println(err)
+		if leakId == nil {
+			fmt.Println("can't get the leak transaction")
+		}
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		// 通过泄露交易提取主密钥
+		msk, err := getPrivkeyFromTrans(round, kleak, leakId, mAddr)
+		if err != nil {
+			fmt.Println(err)
+		}
+		//	提取秘密消息
+		covertMsg, err := extractCovertMsg(msk)
+		if err != nil {
+			fmt.Println(err)
+		}
+		duration := time.Since(start)
+		if i == 0 {
+			fmt.Printf("the covert message is: %s\n", covertMsg)
+		}
+		fmt.Println(duration)
+
 	}
-	if leakId == nil {
-		fmt.Println("can't get the leak transaction")
-	}
-	// 通过泄露交易提取主密钥
-	msk, err := getPrivkeyFromTrans(round, kleak, leakId, mAddr)
-	mskAddr, _ := KeyDerivation.GetAddressByPrivKey(msk)
-	fmt.Println("msk address:", mskAddr)
-	if err != nil {
-		fmt.Println(err)
-	}
-	//	提取秘密消息
-	covertMsg, err := extractCovertMsg(msk)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Printf("the covert message is: %s", covertMsg)
+
 }
 
 // extractCovertMsg 基于主密钥不断派生子密钥筛选隐蔽交易，直到生成的密钥没有发起过交易
@@ -92,7 +107,7 @@ func extractCovertMsg(parentKey *KeyDerivation.PrivateKey) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		covertTxId, err := filterTransByInputaddr(skAddr)
+		covertTxId, err := filterTransByInputaddrByAPI(skAddr)
 		// 如果地址没有交易那么说明消息嵌入结束
 		if covertTxId == nil {
 			break
@@ -154,7 +169,7 @@ func filterLeakTx(round int) (*chainhash.Hash, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	leakTxId, err := filterTransByInputaddr(mpkAddress)
+	leakTxId, err := filterTransByInputaddrByAPI(mpkAddress)
 	if err != nil {
 		return leakTxId, "", nil
 	}
@@ -216,44 +231,57 @@ func getHashFromTx(rawTx *btcutil.Tx) ([]byte, error) {
 	return hash, nil
 }
 
-// TODO:可优化
-// filterTransByInputaddr 根据输入地址筛选交易，默认一个地址只参与一个交易
-func filterTransByInputaddr(addr string) (*chainhash.Hash, error) {
-	transactions, _ := client.ListTransactionsCount("*", 99999)
-	// 遍历所有交易依次筛选
-	for _, v := range transactions {
-		txId, err := chainhash.NewHashFromStr(v.TxID)
-		// coinbase交易没有输入
-		if v.Generated {
-			continue
-		}
-		// 获取交易的输入
-		inputUTXO, err := getInputUTXO(txId)
-		if err != nil {
-			return nil, err
-		}
-		// 根据输入utxo提取输入地址
-		for _, utxo := range inputUTXO {
-			// 产生这个utxo的交易id
-			utxoHash := utxo.Hash
-			// utxo在交易中的序号
-			utxoIndex := utxo.Index
-			// 获取前置交易
-			previousTrans, _ := client.GetTransaction(&utxoHash)
-			var addrTemp string
-			// 从details找到对应的vout，（每一个输出都会在details中插入两条记录，一个send类型，一个receive类型，coinbase交易只有一个为generate类型）
-			if previousTrans.Details[0].Category == "generate" {
-				continue
-			}
-			addrTemp = previousTrans.Details[2*utxoIndex+1].Address
-			// 交易的输入地址包含目标地址
-			if err != nil {
-				return nil, err
-			}
-			if addrTemp == addr {
-				return txId, nil
-			}
-		}
+// filterTransByInputaddrByAPI 模拟主网查询请求，任意发送一个地址的请求，直接返回隐蔽交易的id（本地simnet网络无法调用第三方api）
+func filterTransByInputaddrByAPI(addr string) (*chainhash.Hash, error) {
+	url := fmt.Sprintf("https://api.3xpl.com/bitcoin/address/%s?token=3A0_t3st3xplor3rpub11cb3t4efcd21748a5e&data=events", addr)
+	resp, err := http.Get(url)
+	if resp.StatusCode != 200 {
+		log.Fatalf("请求失败：%s", resp.Status)
+		return nil, err
 	}
-	return nil, fmt.Errorf("not exist transaction with input address:%s", addr)
+	defer resp.Body.Close()
+
+	// 模拟由api返回交易id
+	switch addr {
+	case "SRMMzEu1AtnTfQorrE1CAiTQ2AdVgfiwp6":
+		hash, _ := chainhash.NewHashFromStr("b559e5529a7184cc388fef50f2ce55336ce39740987507c4bb167b571f6ad2bc")
+		return hash, nil
+	case "SiGGuKwQ2WP1uZ63TBVk1E6mb3qPyqrnEg":
+		hash, _ := chainhash.NewHashFromStr("b6a0443e58720551fece4b601b559cfc035f895fc139ba1ea22c1c9667770fb9")
+		return hash, nil
+	case "SNb2cVFfzTW4ecMyRg7DncL4vKbFka9mGA":
+		hash, _ := chainhash.NewHashFromStr("dfec5be7e3becb59296f1e277e679663c98d3e0521a8d612403d38f263a03711")
+		return hash, nil
+	case "SjJaJhDBcWUW2x8UUiXrucpqZMW4GfEbFn":
+		hash, _ := chainhash.NewHashFromStr("82e251cb5ff9bab1ff284d5d27b28f24b6b08844234ab2ec55ca9f0b77bc18cd")
+		return hash, nil
+	case "STGeYnmKs1XRRUdY5xBWQgkDe12XM69uPR":
+		hash, _ := chainhash.NewHashFromStr("4e9e70c5592a2a800f27d7a50c8474e38c326c3433d0ce479d369b43de4513ec")
+		return hash, nil
+	case "SZKehtZnRaRD9xX3TWzPaJ1noWJPewsvbz":
+		hash, _ := chainhash.NewHashFromStr("eb8c5843d1c3acace9ddd046a96e0f4183f89a1ca186d8e806a83c26a52120a8")
+		return hash, nil
+	case "Sbw2ujZf3zPw1xqKEFdKsYnfCKWZLodjHn":
+		hash, _ := chainhash.NewHashFromStr("a55d7f5b10a600dff9f431acb07716ded950ba10a470678cc689cb3174e7b008")
+		return hash, nil
+	case "ScnZkmpzFhkTqDggW58ngUrBZQ6kz6Yx5Y":
+		hash, _ := chainhash.NewHashFromStr("1df500db9adbfb1b806abe3f5e7c883e7553e48b8c8fa5d9058e4479b79b598b")
+		return hash, nil
+	case "SkcyqqePBo4YBPbkm3HsFXuCXnmK9XmVCj":
+		hash, _ := chainhash.NewHashFromStr("e671bb55faa4bd5b3979ffef172a982dfec17902b0e0dbc8de4448c008f39add")
+		return hash, nil
+	case "ScECtJUTBteEKBh8s5ZNZkeUa6Rutz9vK8":
+		hash, _ := chainhash.NewHashFromStr("88022519083fee764f6c737bfdc704f372caf48223d4a5094c5ae118f9ce8079")
+		return hash, nil
+	case "SS6TEYptYhuDDwPvJEtbfYRdPGVxNKEDY9":
+		hash, _ := chainhash.NewHashFromStr("1ff3be006e37cb1962956d9a9ae0ec8ea1c2fe75f3e114b6e7c153e7a34cebd4")
+		return hash, nil
+	case "Sft65bpbVnAoBYN3d78YXr2pHHVRjYDmdv":
+		hash, _ := chainhash.NewHashFromStr("9630ba724859685d19852d9b6e84892dff64c098990796e017716d6b06efc09b")
+		return hash, nil
+	case "Sc4DW59hYDmyz8ZNZZdR7wSNkZt99XrydU":
+		hash, _ := chainhash.NewHashFromStr("1a2134cb448864b232fc00d3e954fb0b845a90cb36fe8be8d749a6d89571401b")
+		return hash, nil
+	}
+	return nil, errors.New("can't get trans by input address")
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"covertCommunication/KeyDerivation"
-	"fmt"
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -35,11 +34,11 @@ func initWallet() {
 func main() {
 	initWallet()
 
-	transfer(0, 5)
-	rawTx := generateTransFromUTXO("bc508fd9a4412eac3270291d2ac2b4a6922028ed101d729711df71f743a9ded0", "SRMMzEu1AtnTfQorrE1CAiTQ2AdVgfiwp6", 10)
-	signTx := signTrans2(rawTx, nil)
-	txid := broadTrans2(signTx)
-	fmt.Println(txid)
+	transfer(0, 15)
+	//rawTx := generateTransFromUTXO("b5c9c14ac0c13123cf368136fd50293fe0dd9838384423da6a1a30ab0b26db0e", "SRMMzEu1AtnTfQorrE1CAiTQ2AdVgfiwp6", 10)
+	//signTx, _ := signTrans(rawTx, nil)
+	//broadTrans(signTx)
+	client.Generate(1)
 }
 
 // 向第id个私钥下派生的cnt个地址各转入一个utxo
@@ -52,9 +51,20 @@ func transfer(id, cnt int) error {
 	num := 0
 	for _, utxo := range utxos {
 		if num == cnt {
+			if utxo.Address != "SYZPAZEjXy7S4jbsUHqWUgv2FYomsR3RVS" || utxo.Amount != 50 {
+				continue
+			}
+			destAddr, err := KeyDerivation.GetAddressByPrivKey(skid)
+			sourceTxid := utxo.TxID
+			rawTx := generateTransFromUTXO(sourceTxid, destAddr, utxo.Amount)
+			signTx, err := signTrans(rawTx, nil)
+			if err != nil {
+				log.Fatalf("Error: %s", err)
+			}
+			broadTrans(signTx)
 			break
 		}
-		if utxo.Address != "SMyjjZCS3Wgn3xidhGs92AFNPxQ1AhuvXk" {
+		if utxo.Address != "SYZPAZEjXy7S4jbsUHqWUgv2FYomsR3RVS" || utxo.Amount != 50 {
 			continue
 		}
 		skidnum, _ := skid.ChildPrivateKeyDeprive(uint32(num))
@@ -65,10 +75,12 @@ func transfer(id, cnt int) error {
 			return err
 		}
 		sourceTxid := utxo.TxID
-		rawTx := generateTransFromUTXO(sourceTxid, destAddr, 10)
-		signTx := signTrans2(rawTx, nil)
-		txid := broadTrans2(signTx)
-		fmt.Printf("transfer to address:%s txid:%s \n", destAddr, txid)
+		rawTx := generateTransFromUTXO(sourceTxid, destAddr, utxo.Amount)
+		signTx, err := signTrans(rawTx, nil)
+		if err != nil {
+			log.Fatalf("Error: %s", err)
+		}
+		broadTrans(signTx)
 		num++
 	}
 	return nil
@@ -87,7 +99,7 @@ func importPrivkey(key *KeyDerivation.PrivateKey) error {
 }
 
 // 生成sourceAddr到destAddr的原始交易（将UTXO全部转给目标地址，没有交易费）
-func generateTransFromUTXO(txid, destAddr string, amount int) *wire.MsgTx {
+func generateTransFromUTXO(txid, destAddr string, amount float64) *wire.MsgTx {
 	// 构造输入
 	var inputs []btcjson.TransactionInput
 	inputs = append(inputs, btcjson.TransactionInput{
@@ -108,20 +120,31 @@ func generateTransFromUTXO(txid, destAddr string, amount int) *wire.MsgTx {
 }
 
 // 签名交易，嵌入秘密消息
-func signTrans2(rawTx *wire.MsgTx, embedMsg *string) *wire.MsgTx {
-	signedTx, complete, err, isSOvers := client.SignRawTransaction(rawTx, embedMsg)
+func signTrans(rawTx *wire.MsgTx, embedMsg *string) (*wire.MsgTx, error) {
+	signedTx, complete, err, _ := client.SignRawTransaction(rawTx, embedMsg)
 	if err != nil {
 		log.Fatalf("Error signing transaction: %v", err)
 	}
 	if !complete {
 		log.Fatalf("Transaction signing incomplete")
 	}
-	fmt.Println(isSOvers)
-	return signedTx
+	// 保存签名
+	//if embedMsg == nil {
+	//	sig := hex.EncodeToString(signedTx.TxIn[0].SignatureScript)
+	//	sign, ok := DataAnalysis.GetSignatureFromHex(sig)
+	//	if !ok {
+	//		return nil, errors.New("get signature error")
+	//	}
+	//	err = DataAnalysis.AppendSignature(sign, "DataAnalysis/DataSet/NormalSig_10.xlsx")
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+	return signedTx, nil
 }
 
 // 广播交易
-func broadTrans2(signedTx *wire.MsgTx) string {
+func broadTrans(signedTx *wire.MsgTx) string {
 	txHash, err := client.SendRawTransaction(signedTx, false)
 	if err != nil {
 		log.Fatalf("Error sending transaction: %v", err)

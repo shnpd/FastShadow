@@ -26,8 +26,14 @@ func main() {
 	}
 	defer client.Shutdown()
 
-	fmt.Println(filterTransByInputaddr(client, "SiGGuKwQ2WP1uZ63TBVk1E6mb3qPyqrnEg"))
+	//results, err := client.ListTransactionsCount("*", 99999)
+	//if err != nil {
+	//	return
+	//}
 
+	//fmt.Println(results)
+	fmt.Println(filterTransByInputaddr(client, "SiGGuKwQ2WP1uZ63TBVk1E6mb3qPyqrnEg"))
+	return
 }
 
 // // filterTrans 根据输入地址筛选交易
@@ -37,13 +43,12 @@ func filterTransByInputaddr(client *rpcclient.Client, addr string) []string {
 	// 遍历所有交易依次筛选
 	for _, v := range transactions {
 		// coinbase交易没有输入
-		if v.Generated {
+		if v.Category != "receive" {
 			continue
 		}
 		// 获取交易的输入utxo
 		inputUTXO := getInputUTXO(client, v.TxID)
 		// 根据输入utxo提取输入地址
-		var inputAddr []string
 		for _, utxo := range inputUTXO {
 			// 产生这个utxo的交易id
 			utxoHash := utxo.Hash
@@ -51,12 +56,12 @@ func filterTransByInputaddr(client *rpcclient.Client, addr string) []string {
 			utxoIndex := utxo.Index
 			previousTrans, _ := client.GetTransaction(&utxoHash)
 			var addrTemp string
-			// 从details找到对应的vout，（每一个输出都会在details中插入两条记录，一个send类型，一个receive类型，coinbase交易只有一个为generate类型）
+			// 从details找到对应的vout，（每一个输出都会在details中插入两条记录，一个send类型，一个receive类型，）
+			// coinbase交易只有一个为generate类型，Details长度为1，防止数组越界
 			if previousTrans.Details[0].Category == "generate" {
 				continue
 			}
 			addrTemp = previousTrans.Details[2*utxoIndex+1].Address
-			inputAddr = append(inputAddr, addrTemp)
 			// 交易的输入地址包含目标地址
 			if addrTemp == addr {
 				txIds = append(txIds, v.TxID)

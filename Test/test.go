@@ -1,120 +1,116 @@
 package main
 
 import (
-	"covertCommunication/KeyDerivation"
-	"crypto/sha256"
+	"bytes"
+	"crypto/aes"
+	"errors"
 	"fmt"
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil/base58"
-	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/xuri/excelize/v2"
 	"log"
+	"net/http"
+	"os"
 )
 
-var t int64
-var val float64
-
-type MsgTx struct {
-	Version  int32
-	TxIn     []TxIn // 不使用指针
-	LockTime uint32
-}
-
-type TxIn struct {
-	Sequence uint32
-	Amount   int64
-}
-
-// 尝试修改非指针 TxIn 切片中的元素
-func modifyTxIn(msg MsgTx) {
-	msg.LockTime = 999
-	msg.TxIn[0].Sequence = 999
-}
-
 func main() {
-	// 初始化 MsgTx
-	tx := MsgTx{
-		Version: 1,
-		TxIn: []TxIn{
-			{Sequence: 123, Amount: 1000},
-			{Sequence: 456, Amount: 2000},
-		},
-	}
+	// 定义目标URL
+	url := "https://api.3xpl.com/bitcoin/address/bc1p7m3rtqkvfvgenlgge7px584vk0xax82m80wskljpgg9d739jj8asv04fck?token=3A0_t3st3xplor3rpub11cb3t4efcd21748a5e&data=events"
 
-	fmt.Println("Before:", tx.TxIn[0].Sequence) // 输出：Before: 123
-	fmt.Println(tx.LockTime)
-	// 修改 TxIn 第一个元素的 Sequence 字段
-	modifyTxIn(tx)
-	fmt.Println(tx.LockTime)
-	fmt.Println("After:", tx.TxIn[0].Sequence) // 仍然输出：After: 123
-}
-
-// 根据PublicKey获取对应的地址
-func GetAddressByPubKey(key *KeyDerivation.PublicKey) string {
-	// 生成地址
-	pubKey, err := secp256k1.ParsePubKey(key.Key)
+	// 发送GET请求
+	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatalf("get address error %s", err)
+		log.Fatalf("请求失败: %v", err)
 	}
-	addr, err := btcutil.NewAddressPubKey(pubKey.SerializeUncompressed(), &chaincfg.SimNetParams)
-	return addr.EncodeAddress()
+	defer resp.Body.Close()
+
 }
 
-// 根据wif私钥获取对应的地址
-func GetAddressByWIF(keywif string) (string, error) {
-	// 解析WIF格式
-	privKey, err := btcutil.DecodeWIF(keywif)
+// PKCS7Padding 添加填充
+func PKCS7Padding(data []byte, blockSize int) []byte {
+	padding := blockSize - len(data)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(data, padtext...)
+}
+
+// PKCS7Unpadding 移除填充
+func PKCS7Unpadding(data []byte) ([]byte, error) {
+	length := len(data)
+	if length == 0 {
+		return nil, errors.New("data is empty")
+	}
+	padding := int(data[length-1])
+	return data[:(length - padding)], nil
+}
+
+// EncryptAES256 使用AES-256的ECB模式加密
+func EncryptAES256(input []byte, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		fmt.Println("Error decoding WIF:", err)
-		return "", err
+		return nil, err
 	}
-	// 计算公钥
-	pubKey := privKey.PrivKey.PubKey()
-	// 生成地址
-	addr, err := btcutil.NewAddressPubKey(pubKey.SerializeUncompressed(), &chaincfg.SimNetParams)
+
+	// 对输入数据进行填充，使其长度为AES块大小的倍数
+	paddedInput := PKCS7Padding(input, block.BlockSize())
+	encrypted := make([]byte, len(paddedInput))
+
+	// ECB模式分块加密
+	for start := 0; start < len(paddedInput); start += block.BlockSize() {
+		end := start + block.BlockSize()
+		block.Encrypt(encrypted[start:end], paddedInput[start:end])
+	}
+
+	return encrypted, nil
+}
+
+// DecryptAES256 使用AES-256的ECB模式解密
+func DecryptAES256(encrypted []byte, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		fmt.Println("Error creating address:", err)
-		return "", err
-	}
-	// 输出地址
-	return addr.EncodeAddress(), nil
-}
-
-// 根据PrivateKey获取对应的地址
-func GetAddressByPrivKey(key *KeyDerivation.PrivateKey) string {
-	prikWIF := ToWIF(key.Key, "simnet")
-	address, _ := GetAddressByWIF(prikWIF)
-	return address
-}
-
-// ToWIF 将私钥转换为 WIF 格式
-func ToWIF(privateKey []byte, netType string) string {
-	// 选择网络字节
-	var networkByte byte
-	switch netType {
-	case "mainnet":
-		networkByte = 0x80 // 主网
-	case "testnet":
-		networkByte = 0xEF // 测试网
-	case "simnet":
-		networkByte = 0x64 //模拟网
-	default:
-		log.Fatalf("netType error")
+		return nil, err
 	}
 
-	// 创建新的字节数组，长度为私钥长度 + 1 + 4（校验和）
-	wif := make([]byte, 0, len(privateKey)+1+4)
-	wif = append(wif, networkByte)   // 添加网络字节
-	wif = append(wif, privateKey...) // 添加私钥
+	decrypted := make([]byte, len(encrypted))
 
-	// 计算校验和
-	checksum := sha256.Sum256(wif)        // 第一次SHA-256
-	checksum = sha256.Sum256(checksum[:]) // 第二次SHA-256
-	checksum2 := checksum[:4]             // 取前4字节作为校验和
+	// ECB模式分块解密
+	for start := 0; start < len(encrypted); start += block.BlockSize() {
+		end := start + block.BlockSize()
+		block.Decrypt(decrypted[start:end], encrypted[start:end])
+	}
 
-	// 将校验和添加到WIF末尾
-	wif = append(wif, checksum2...)
+	// 移除填充
+	return PKCS7Unpadding(decrypted)
+}
 
-	// 进行Base58编码
-	return base58.Encode(wif)
+func newFile() {
+	f := excelize.NewFile()
+
+	f.NewSheet("Sheet1")
+
+	// 保存文件
+	if err := f.SaveAs("DataAnalysis/DataSet/CovertSig.xlsx"); err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("File created successfully.")
+	}
+}
+
+// SaveSignature 将签名数组保存到excel文件
+func AppendSignature(signatures, savePath string) error {
+	var f *excelize.File
+	// 打开Excel文件
+	if _, err := os.Stat(savePath); os.IsNotExist(err) {
+		// 如果文件不存在，则创建一个新的 .xlsx 文件
+		f = excelize.NewFile()
+		// 保存文件
+		if err := f.SaveAs(savePath); err != nil {
+			return fmt.Errorf("failed to create xlsx file: %w", err)
+		}
+	} else {
+		// 如果文件存在，打开文件
+		f, err = excelize.OpenFile(savePath)
+		if err != nil {
+			return fmt.Errorf("failed to open file: %w", err)
+		}
+	}
+	defer f.Close()
+	return nil
 }
