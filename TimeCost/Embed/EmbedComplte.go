@@ -51,8 +51,8 @@ func main() {
 	defer Client.Shutdown()
 	Covertmsg += EndFlag
 
-	for round := 1; round <= 10; round++ {
-		err := GenerateNewCntPrivKeys(round-1, 15)
+	for round := 1; round <= 5; round++ {
+		err := GenerateNewCntPrivKeys(round-1, 8)
 		if err != nil {
 			return
 		}
@@ -95,6 +95,8 @@ func main() {
 		//var covertTxid []*chainhash.Hash
 		//covertTxid, err = sendCovertTransaction(round, msgCnt, splitMsg)
 		_, err = SendCovertTransaction(round, msgCnt, splitMsg)
+		duration := time.Since(start)
+
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -121,7 +123,6 @@ func main() {
 			return
 		}
 		//fmt.Printf("leak transaction id: %s\n", leakTrans.String())
-		duration := time.Since(start)
 		fmt.Println(duration)
 		transMsk(round)
 		_, err = Client.Generate(1)
@@ -328,6 +329,7 @@ func UpdateMapUTXOFromAddr() error {
 
 // 发送隐蔽交易
 func SendCovertTransaction(round, msgCnt int, splitMsg []string) ([]*chainhash.Hash, error) {
+
 	mskId := round - 1
 	var covertTxid []*chainhash.Hash
 	//	构造addrcnt个隐蔽交易,每个交易只有1个输入1个输出
@@ -349,5 +351,6 @@ func SendCovertTransaction(round, msgCnt int, splitMsg []string) ([]*chainhash.H
 		}
 		covertTxid = append(covertTxid, txId)
 	}
+
 	return covertTxid, nil
 }

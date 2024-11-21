@@ -2,26 +2,56 @@ package main
 
 import (
 	"bytes"
+	"covertCommunication/Crypto"
 	"crypto/aes"
 	"errors"
 	"fmt"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/xuri/excelize/v2"
 	"log"
-	"net/http"
 	"os"
 )
 
 func main() {
-	// 定义目标URL
-	url := "https://api.3xpl.com/bitcoin/address/bc1p7m3rtqkvfvgenlgge7px584vk0xax82m80wskljpgg9d739jj8asv04fck?token=3A0_t3st3xplor3rpub11cb3t4efcd21748a5e&data=events"
+	covertMsg := "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+	keyAES := []byte("1234567890123456")
 
-	// 发送GET请求
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Fatalf("请求失败: %v", err)
+	splitMsg := Split32bytes([]byte(covertMsg))
+
+	// 加密每个分组
+	var encryptMsg [][]byte
+	for _, v := range splitMsg {
+		cipher, err := Crypto.Encrypt(v, keyAES)
+		fmt.Println(cipher)
+		if err != nil {
+			log.Fatal(err)
+		}
+		encryptMsg = append(encryptMsg, cipher)
 	}
-	defer resp.Body.Close()
+	k := new(secp256k1.ModNScalar)
+	msg := string(encryptMsg[0])
+	k_str_byte := []byte(msg)
+	k.SetByteSlice(k_str_byte)
+	fmt.Println(k_str_byte)
+	fmt.Println(k.String())
 
+	//plain, _ := Crypto.Decrypt(encryptMsg[0], keyAES)
+	//fmt.Println(string(plain))
+}
+
+// Split32bytes 将字符串每32字节划分
+func Split32bytes(msg []byte) [][]byte {
+	chunkSize := 32
+	var chunks [][]byte
+
+	for i := 0; i < len(msg); i += chunkSize {
+		end := i + chunkSize
+		if end > len(msg) {
+			end = len(msg)
+		}
+		chunks = append(chunks, msg[i:end])
+	}
+	return chunks
 }
 
 // PKCS7Padding 添加填充
