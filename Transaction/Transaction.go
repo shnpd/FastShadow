@@ -11,11 +11,26 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
+	"log"
 	"strconv"
 )
 
+// GetSigFromTx 从交易id查询交易签名
+func GetSigFromTx(client *rpcclient.Client, txid *chainhash.Hash) string {
+	rawtx, err := client.GetRawTransaction(txid)
+	if err != nil {
+		log.Fatal(err)
+	}
+	sigScript := hex.EncodeToString(rawtx.MsgTx().TxIn[0].SignatureScript)
+	sigScript = sigScript[2:]
+	length := sigScript[2:4]
+	lenSig, _ := strconv.ParseInt(length, 16, 10)
+	sigScript = sigScript[0 : 4+lenSig*2]
+	return sigScript
+}
+
 // EntireSendTrans 完整交易发送，包括交易生成、交易签名、交易广播，最终返回广播的交易id
-func EntireSendTrans(client *rpcclient.Client, sourceAddr, destAddr string, amount int64, embedMsg *string) (*chainhash.Hash, error) {
+func EntireSendTrans(client *rpcclient.Client, sourceAddr, destAddr string, amount int64, embedMsg *[]byte) (*chainhash.Hash, error) {
 	rawTx, err := GenerateTrans(client, sourceAddr, destAddr, amount)
 	if err != nil {
 		return nil, err
@@ -36,12 +51,16 @@ func GenerateTrans(client *rpcclient.Client, sourceAddr, destAddr string, amount
 	// 筛选源地址的UTXO
 	utxos, _ := client.ListUnspent()
 	var sourceUTXO btcjson.ListUnspentResult
-	for _, utxo := range utxos {
+	for i, utxo := range utxos {
 		if utxo.Address == sourceAddr {
 			sourceUTXO = utxo
 			break
 		}
+		if i == len(utxos)-1 {
+			return nil, fmt.Errorf("UTXO not found")
+		}
 	}
+
 	// 构造输入
 	var inputs []btcjson.TransactionInput
 	inputs = append(inputs, btcjson.TransactionInput{
@@ -66,8 +85,8 @@ func GenerateTrans(client *rpcclient.Client, sourceAddr, destAddr string, amount
 }
 
 // SignTrans 签名交易，嵌入秘密消息，并保存特殊q
-func SignTrans(client *rpcclient.Client, rawTx *wire.MsgTx, embedMsg *string) (*wire.MsgTx, error) {
-	signedTx, complete, err, _ := client.SignRawTransaction(rawTx, embedMsg)
+func SignTrans(client *rpcclient.Client, rawTx *wire.MsgTx, embedMsg *[]byte) (*wire.MsgTx, error) {
+	signedTx, complete, err, _ := client.SignRawTransaction(rawTx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error signing transaction: %v", err)
 	}

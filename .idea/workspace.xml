@@ -5,12 +5,24 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8074cf3a-9466-4396-ba19-31c082b552aa" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/fileoperator/operator.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/covertCommunication.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/covertCommunication.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test/sign.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test/test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test/testLength.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Crypto/pseudorandom.go" beforeDir="false" afterPath="$PROJECT_DIR$/Crypto/pseudorandom.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DataAnalysis/DataSet/CovertSig_1.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DataAnalysis/DataSet/NormalSig_1.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DataAnalysis/DataSet/NormalSig_10.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DataAnalysis/DataSet/test.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DataAnalysis/EmbedAuxiliary.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DataAnalysis/GetData.go" beforeDir="false" afterPath="$PROJECT_DIR$/DataAnalysis/GetData.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DataAnalysis/My_covert.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DataAnalysis/variables.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/EmbedMsg/EmbedComplete.go" beforeDir="false" afterPath="$PROJECT_DIR$/EmbedMsg/EmbedComplete.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ExtractMsg/ExtractComplete.go" beforeDir="false" afterPath="$PROJECT_DIR$/ExtractMsg/ExtractComplete.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Transaction/Transaction.go" beforeDir="false" afterPath="$PROJECT_DIR$/Transaction/Transaction.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Transfer/transfer.go" beforeDir="false" afterPath="$PROJECT_DIR$/Transfer/transfer.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,45 +33,83 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Go File" />
+        <option value="Go Application" />
       </list>
     </option>
   </component>
   <component name="GOROOT" url="file://$PROJECT_DIR$/../../../Go" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;shnpd&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/shnpd/CovertCommunication.git&quot;,
+    &quot;accountId&quot;: &quot;be8b19be-b6c0-4ddf-9095-6a7707b60409&quot;
+  }
+}</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/../../../Go/src/strings/builder.go" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/../../../Go/src/unicode/utf8/utf8.go" root0="SKIP_INSPECTION" />
+  </component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
   <component name="ProjectId" id="2osrRRG3Y9V3LgnloBb8GSaWgMK" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="autoscrollFromSource" value="true" />
     <option name="autoscrollToSource" value="true" />
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowPanel.toolwindow.highlight.mappings&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowPanel.toolwindow.highlight.symlinks&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowPanel.toolwindow.show.date&quot;: &quot;false&quot;,
-    &quot;WebServerToolWindowPanel.toolwindow.show.permissions&quot;: &quot;false&quot;,
-    &quot;WebServerToolWindowPanel.toolwindow.show.size&quot;: &quot;false&quot;,
-    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
-    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/CODE/GoLand/CovertCommunication&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.fileTypes&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultGoTemplateProperty": "Go Application",
+    "Go Build.go build covertCommunication/DataAnalysis.executor": "Run",
+    "Go Build.go build covertCommunication/EmbedMsg.executor": "Run",
+    "Go Build.go build covertCommunication/ExtractMsg.executor": "Debug",
+    "Go Build.go build covertCommunication/Test (1).executor": "Run",
+    "Go Build.go build covertCommunication/Test.executor": "Run",
+    "Go Build.go build covertCommunication/Test/generate.executor": "Run",
+    "Go Build.go build covertCommunication/Transfer.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.go.formatter.settings.were.checked": "true",
+    "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
+    "WebServerToolWindowFactoryState": "true",
+    "WebServerToolWindowPanel.toolwindow.highlight.mappings": "true",
+    "WebServerToolWindowPanel.toolwindow.highlight.symlinks": "true",
+    "WebServerToolWindowPanel.toolwindow.show.date": "false",
+    "WebServerToolWindowPanel.toolwindow.show.permissions": "false",
+    "WebServerToolWindowPanel.toolwindow.show.size": "false",
+    "git-widget-placeholder": "main",
+    "go.import.settings.migrated": "true",
+    "go.sdk.automatically.set": "true",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "D:/CODE/GoLand/GetBlockChainData",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "run.code.analysis.last.selected.profile": "pProject Default",
+    "run.configurations.included.in.services": "true",
+    "settings.editor.selected.configurable": "goland.project.structure"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\CODE\GoLand\CovertCommunication\Crypto" />
@@ -71,14 +121,21 @@
       <recent name="D:\CODE\GoLand\CovertCommunication\EmbedMsg" />
     </key>
   </component>
-  <component name="RunManager" selected="Go Build.go build covertCommunication/Test">
-    <configuration name="go build covertCommunication/EmbedMsg" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+  <component name="RunDashboard">
+    <option name="configurationTypes">
+      <set>
+        <option value="GoApplicationRunConfiguration" />
+      </set>
+    </option>
+  </component>
+  <component name="RunManager" selected="Go Build.go build covertCommunication/DataAnalysis">
+    <configuration name="go build covertCommunication/DataAnalysis" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="covertCommunication" />
       <working_directory value="$PROJECT_DIR$" />
       <kind value="PACKAGE" />
-      <package value="covertCommunication/EmbedMsg" />
+      <package value="covertCommunication/DataAnalysis" />
       <directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$/EmbedMsg/EmbedComplete.go" />
+      <filePath value="$PROJECT_DIR$/DataAnalysis/GetData.go" />
       <method v="2" />
     </configuration>
     <configuration name="go build covertCommunication/ExtractMsg" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
@@ -90,13 +147,22 @@
       <filePath value="$PROJECT_DIR$/ExtractMsg/ExtractComplete.go" />
       <method v="2" />
     </configuration>
-    <configuration name="go build covertCommunication/Test" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+    <configuration name="go build covertCommunication/Test (1)" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="covertCommunication" />
       <working_directory value="$PROJECT_DIR$" />
       <kind value="FILE" />
       <package value="covertCommunication/Test" />
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$/Test/test.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build covertCommunication/Test/generate" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="covertCommunication" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <package value="covertCommunication/Test/generate" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/Test/generate/main.go" />
       <method v="2" />
     </configuration>
     <configuration name="go build covertCommunication/Transfer" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
@@ -108,24 +174,23 @@
       <filePath value="$PROJECT_DIR$/Transfer/transfer.go" />
       <method v="2" />
     </configuration>
-    <configuration name="go build covertCommunication/TransferTest" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
-      <module name="covertCommunication" />
-      <working_directory value="$PROJECT_DIR$" />
-      <kind value="PACKAGE" />
-      <package value="covertCommunication/TransferTest" />
-      <directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$/TransferTest/test_transfer.go" />
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Go Build.go build covertCommunication/Test" />
-        <item itemvalue="Go Build.go build covertCommunication/EmbedMsg" />
+        <item itemvalue="Go Build.go build covertCommunication/DataAnalysis" />
         <item itemvalue="Go Build.go build covertCommunication/Transfer" />
+        <item itemvalue="Go Build.go build covertCommunication/Test (1)" />
         <item itemvalue="Go Build.go build covertCommunication/ExtractMsg" />
-        <item itemvalue="Go Build.go build covertCommunication/TransferTest" />
+        <item itemvalue="Go Build.go build covertCommunication/Test/generate" />
       </list>
     </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-gosdk-d297c17c1fbd-b87a2f8923ed-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-243.21565.208" />
+        <option value="bundled-js-predefined-d6986cc7102b-e768b9ed790e-JavaScript-GO-243.21565.208" />
+      </set>
+    </attachedChunks>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
@@ -155,29 +220,26 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/ExtractMsg/ExtractComplete.go</url>
-          <line>63</line>
-          <option name="timeStamp" value="19" />
+          <line>77</line>
+          <option name="timeStamp" value="30" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/ExtractMsg/ExtractComplete.go</url>
-          <line>118</line>
-          <option name="timeStamp" value="20" />
+          <line>47</line>
+          <option name="timeStamp" value="31" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/EmbedMsg/EmbedComplete.go</url>
-          <line>115</line>
-          <option name="timeStamp" value="21" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/Test/test.go</url>
-          <line>14</line>
-          <option name="timeStamp" value="26" />
+          <url>file://$PROJECT_DIR$/DataAnalysis/GetData.go</url>
+          <line>42</line>
+          <option name="timeStamp" value="32" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
       <configuration name="GoApplicationRunConfiguration">
         <watch expression="*(*&quot;[32]uint8&quot;)(824633787616)" />
+        <watch expression="*(*&quot;[32]uint8&quot;)(824633792288)" />
+        <watch expression="covertTxId.String()" language="go" />
       </configuration>
     </watches-manager>
   </component>

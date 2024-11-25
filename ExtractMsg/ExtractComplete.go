@@ -10,6 +10,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 	"log"
 	"strings"
 	"unicode/utf8"
@@ -56,9 +57,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	// 验证提取的私钥地址是否正确
-	//mskAddr, _ := Key.GetAddressByPrivateKey(msk, netType)
-	//fmt.Println("msk address:", mskAddr)
 
 	//	提取秘密消息
 	covertMsg, err := extractCovertMsg(msk)
@@ -94,36 +92,14 @@ func extractCovertMsg(parentKey *Key.PrivateKey) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		signarute := Transaction.GetSignaruteFromTx(rawTx)
+		signature := Transaction.GetSignaruteFromTx(rawTx)
 		hash, err := Transaction.GetHashFromTx(client, rawTx)
 		if err != nil {
 			return "", err
 		}
-		r := signarute.R()
-		s := signarute.S()
-		d := new(secp256k1.ModNScalar)
-		d.SetByteSlice(sk.Key)
-		k := recoverK(d, &r, &s, hash)
-
-		// 转换后的字节0会出现在数组前部而实际数据出现在后部，会导致结束标志被分割，我们将0字节删除
-		kByte := k.Bytes()
-		kByteT := bytes.TrimLeft(kByte[:], "\x00")
-		plainK, err := Crypto.Decrypt(kByteT, keyAES)
+		kStr, err := getPlainText(signature, hash, sk)
 		if err != nil {
 			return "", err
-		}
-		kStr := string(plainK)
-		// 如果提取出的字符串没有意义，则需要计算s.negate()
-		if !utf8.ValidString(kStr) {
-			s.Negate()
-			k := recoverK(d, &r, &s, hash)
-			kByte = k.Bytes()
-			kByteT = bytes.TrimLeft(kByte[:], "\x00")
-			plainK, err := Crypto.Decrypt(kByteT, keyAES)
-			if err != nil {
-				return "", err
-			}
-			kStr = string(plainK)
 		}
 		covertMsg += kStr
 		isEnd, msg := findEndFlag(covertMsg, "ENDEND")
@@ -132,6 +108,37 @@ func extractCovertMsg(parentKey *Key.PrivateKey) (string, error) {
 		}
 	}
 	return covertMsg, nil
+}
+
+// 根据预先计算的签名、哈希等提取明文，包括解密、去除先导0、判断s是否取反（在计算签名时如果s超过一半则会取反）
+func getPlainText(signature *ecdsa.Signature, hash []byte, sk *Key.PrivateKey) (string, error) {
+	r := signature.R()
+	s := signature.S()
+	d := new(secp256k1.ModNScalar)
+	d.SetByteSlice(sk.Key)
+	k := recoverK(d, &r, &s, hash)
+	// 转换后的字节0会出现在数组前部而实际数据出现在后部，会导致结束标志被分割，我们将0字节删除
+	kByte := k.Bytes()
+	kByteT := bytes.Trim(kByte[:], "\x00")
+	plainK, err := Crypto.Decrypt(kByte[:], keyAES)
+	if err != nil {
+		return "", err
+	}
+
+	kStr := string(plainK)
+	// 如果提取出的字符串没有意义，则需要计算s.negate()
+	if !utf8.ValidString(kStr) {
+		s.Negate()
+		k = recoverK(d, &r, &s, hash)
+		kByte = k.Bytes()
+		kByteT = bytes.TrimLeft(kByte[:], "\x00")
+		plainK, err = Crypto.Decrypt(kByteT, keyAES)
+		if err != nil {
+			return "", err
+		}
+		kStr = string(plainK)
+	}
+	return kStr, nil
 }
 
 // findEndFlag 判断当前提取的字符串是否包含结束标志，如果包含则截取结束标志之前的内容并返回true

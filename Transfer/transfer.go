@@ -31,7 +31,7 @@ func main() {
 	//client.Generate(299)
 	//time.Sleep(time.Second * 3)
 	//
-	err := transfer(0, 13)
+	err := transfer(0, 500)
 	if err != nil {
 		log.Fatal(err)
 	}
