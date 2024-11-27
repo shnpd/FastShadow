@@ -6,6 +6,7 @@ import (
 	"covertCommunication/Transaction"
 	"github.com/btcsuite/btcd/rpcclient"
 	"log"
+	"time"
 )
 
 const btc = 100000000
@@ -31,7 +32,7 @@ func main() {
 	//client.Generate(299)
 	//time.Sleep(time.Second * 3)
 	//
-	err := transfer(0, 500)
+	err := transfer(0, 5)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,6 +54,7 @@ func transfer(id, cnt int) error {
 	utxos, _ := client.ListUnspent()
 	num := 0
 	for _, utxo := range utxos {
+		time.Sleep(500 * time.Millisecond)
 		if utxo.Address != miningAddr {
 			continue
 		}

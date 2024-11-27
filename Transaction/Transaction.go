@@ -2,6 +2,7 @@ package Transaction
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/btcutil"
@@ -86,7 +87,7 @@ func GenerateTrans(client *rpcclient.Client, sourceAddr, destAddr string, amount
 
 // SignTrans 签名交易，嵌入秘密消息，并保存特殊q
 func SignTrans(client *rpcclient.Client, rawTx *wire.MsgTx, embedMsg *[]byte) (*wire.MsgTx, error) {
-	signedTx, complete, err, _ := client.SignRawTransaction(rawTx, nil)
+	signedTx, complete, err, _ := client.SignRawTransaction(rawTx, embedMsg)
 	if err != nil {
 		return nil, fmt.Errorf("error signing transaction: %v", err)
 	}
@@ -104,21 +105,6 @@ func BroadTrans(client *rpcclient.Client, signedTx *wire.MsgTx) (*chainhash.Hash
 		return nil, fmt.Errorf("SendRawTransaction error: %v", err)
 	}
 	return txHash, nil
-}
-
-// getInputUTXO 获取交易的输入UTXO
-func getInputUTXO(client *rpcclient.Client, txid *chainhash.Hash) ([]wire.OutPoint, error) {
-	// 根据交易id筛选原始交易（原始交易包含txin字段）
-	rawTransaction, err := client.GetRawTransaction(txid)
-	if err != nil {
-		return nil, err
-	}
-	txInput := rawTransaction.MsgTx().TxIn
-	var inputUtxo []wire.OutPoint
-	for _, v := range txInput {
-		inputUtxo = append(inputUtxo, v.PreviousOutPoint)
-	}
-	return inputUtxo, nil
 }
 
 // GetHashFromTx 提取计算交易签名的原始数据
@@ -170,7 +156,6 @@ func GetSigFromHex(HexSig string) *ecdsa.Signature {
 	return sig
 }
 
-// TODO:可优化
 // FilterTransByInputaddr 根据输入地址筛选交易，默认一个地址只参与一个交易(本方法只在simnet网络中使用，在实际mainnet中可以直接调用第三方api筛选交易)
 func FilterTransByInputaddr(client *rpcclient.Client, addr string) (*chainhash.Hash, error) {
 	transactions, _ := client.ListTransactionsCount("*", 99999)
@@ -181,33 +166,38 @@ func FilterTransByInputaddr(client *rpcclient.Client, addr string) (*chainhash.H
 		if v.Generated {
 			continue
 		}
-		// 获取交易的输入
-		inputUTXO, err := getInputUTXO(client, txId)
-		if err != nil {
-			return nil, err
-		}
-		// 根据输入utxo提取输入地址
-		for _, utxo := range inputUTXO {
-			// 产生这个utxo的交易id
-			utxoHash := utxo.Hash
-			// utxo在交易中的序号
-			utxoIndex := utxo.Index
-			// 获取前置交易
-			previousTrans, _ := client.GetTransaction(&utxoHash)
-			var addrTemp string
-			// 从details找到对应的vout，（每一个输出都会在details中插入两条记录，一个send类型，一个receive类型，coinbase交易只有一个为generate类型）
-			if previousTrans.Details[0].Category == "generate" {
-				continue
-			}
-			addrTemp = previousTrans.Details[2*utxoIndex+1].Address
-			// 交易的输入地址包含目标地址
-			if err != nil {
-				return nil, err
-			}
-			if addrTemp == addr {
-				return txId, nil
-			}
+		// 获取交易的输入地址
+		inputAddr, err := getTransInAddr(client, txId)
+		if inputAddr == addr {
+			return txId, err
 		}
 	}
 	return nil, fmt.Errorf("not exist transaction with input address:%s", addr)
+}
+
+func getTransInAddr(client *rpcclient.Client, txHash *chainhash.Hash) (string, error) {
+	txDetails, err := client.GetRawTransactionVerbose(txHash)
+	if err != nil {
+		return "", err
+	}
+	for _, vin := range txDetails.Vin {
+		prevTxid := vin.Txid
+		if prevTxid == "" {
+			return "", errors.New("not exist input address")
+		}
+		voutIndex := vin.Vout
+		// 查询前一个交易的输出
+		hash, _ := chainhash.NewHashFromStr(prevTxid)
+		prevTx, err := client.GetRawTransactionVerbose(hash)
+		if err != nil {
+			return "", fmt.Errorf("error fetching previous transaction: %v", err)
+		}
+		// 获取指定输出的地址
+		vout := prevTx.Vout[voutIndex]
+		address := vout.ScriptPubKey.Address
+		if address != "" {
+			return address, nil
+		}
+	}
+	return "", errors.New("get input address error")
 }

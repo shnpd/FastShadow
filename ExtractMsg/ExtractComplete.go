@@ -6,6 +6,7 @@ import (
 	"covertCommunication/Key"
 	"covertCommunication/RPC"
 	"covertCommunication/Transaction"
+	"errors"
 	"fmt"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
@@ -190,6 +191,9 @@ func getPrivkeyFromTrans(round int, kleak *secp256k1.ModNScalar, txId *chainhash
 		d = recoverD(kleak, &r, &s, hash)
 		priK = d.Bytes()
 		privateKey = Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
+		if addr3, _ := Key.GetAddressByPrivateKey(privateKey, netType); addr3 != addr {
+			return nil, errors.New("get private key error")
+		}
 	}
 	return privateKey, nil
 }
