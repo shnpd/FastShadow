@@ -1,101 +1,80 @@
-// 该文件与MsgExtractComplete/ExtractComplete.go 基本一致，但是为了模拟测试主网下的时间延迟，
-// 我们通过调用第三方api的方法来根据输入地址筛选交易，具体表现为使用filterTransByInputaddrByAPI()代替filterTransByInputaddr()
 package main
 
 import (
 	"bytes"
-	"covertCommunication/KeyDerivation"
-	"encoding/hex"
+	"covertCommunication/Crypto"
+	"covertCommunication/Key"
+	"covertCommunication/RPC"
+	"covertCommunication/Transaction"
 	"errors"
 	"fmt"
-	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 	"log"
-	"net/http"
 	"strings"
 	"time"
 	"unicode/utf8"
 )
 
 var (
-	pkroot   *KeyDerivation.PublicKey //根公钥
-	kleakStr string                   //泄露随机数(字符串格式)
-	mpkSet   []*KeyDerivation.PublicKey
+	pkRoot   *Key.PublicKey //根公钥
+	mpkSet   []*Key.PublicKey
 	client   *rpcclient.Client //客户端
+	keyAES   []byte
+	netType  string
+	kLeakStr string
+	kLeak    *secp256k1.ModNScalar
 )
 
 // 已知根公钥以及泄露随机数
 func init() {
-	skroot, _ := KeyDerivation.GenerateMasterKey([]byte("initseed"))
-	pkroot = KeyDerivation.EntirePublicKeyForPrivateKey(skroot)
-}
-func initWallet() {
-	// 设置RPC客户端连接的配置
-	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:28335", // 替换为你的btcwallet的RPC地址
-		User:         "simnet",          // 在btcwallet配置文件中定义的RPC用户名
-		Pass:         "simnet",          // 在btcwallet配置文件中定义的RPC密码
-		HTTPPostMode: true,              // 使用HTTP POST模式
-		DisableTLS:   true,              // 禁用TLS
-		Params:       "simnet",          // 连接到simnet网
-	}
+	// 获取根公钥
+	skRoot, _ := Key.GenerateMasterKey([]byte("initseed"))
+	pkRoot = Key.EntirePublicKeyForPrivateKey(skRoot)
+	kLeakStr = "leak Random"
+	keyAES = []byte("1234567890123456")
+	netType = "simnet"
+	client = RPC.InitClient("localhost:28335", netType)
+	kLeak = new(secp256k1.ModNScalar)
+	kStrByte := []byte(kLeakStr)
+	kLeak.SetByteSlice(kStrByte)
 
-	// 创建新的RPC客户端
-	client, _ = rpcclient.New(connCfg, nil)
-	err := client.WalletPassphrase("ts0", 6000)
-	if err != nil {
-		fmt.Println(err)
-	}
 }
-
-// 循环执行十次每次都从第0组地址提取秘密消息
 func main() {
-	initWallet()
 	defer client.Shutdown()
 	round := 1
 	for i := 0; i < 10; i++ {
 		start := time.Now()
-		kleak := new(secp256k1.ModNScalar)
-		kleakStr = "leak Random"
-		k_str_byte := []byte(kleakStr)
-		kleak.SetByteSlice(k_str_byte)
-		// 过滤泄露交易id
+		// 筛选泄露交易id
 		leakId, mAddr, err := filterLeakTx(round)
-
+		if err != nil {
+			log.Fatal(err)
+		}
 		if leakId == nil {
-			fmt.Println("can't get the leak transaction")
+			log.Fatal("can't get the leak transaction")
 		}
+		// 通过泄露交易提取主密钥
+		msk, err := getPrivkeyFromTrans(round, kLeak, leakId, mAddr)
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		// 通过泄露交易提取主密钥
-		msk, err := getPrivkeyFromTrans(round, kleak, leakId, mAddr)
-		if err != nil {
-			fmt.Println(err)
-		}
 		//	提取秘密消息
 		covertMsg, err := extractCovertMsg(msk)
 		if err != nil {
 			fmt.Println(err)
 		}
+		fmt.Printf("the covert message is: %s", covertMsg)
 		duration := time.Since(start)
-		if i == 0 {
-			fmt.Printf("the covert message is: %s\n", covertMsg)
-		}
 		fmt.Println(duration)
-
 	}
 
 }
 
 // extractCovertMsg 基于主密钥不断派生子密钥筛选隐蔽交易，直到生成的密钥没有发起过交易
-func extractCovertMsg(parentKey *KeyDerivation.PrivateKey) (string, error) {
+func extractCovertMsg(parentKey *Key.PrivateKey) (string, error) {
 	covertMsg := ""
 	for i := 0; ; i++ {
 		// 计算地址，筛选泄露交易
@@ -103,11 +82,11 @@ func extractCovertMsg(parentKey *KeyDerivation.PrivateKey) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		skAddr, err := KeyDerivation.GetAddressByPrivKey(sk)
+		skAddr, err := Key.GetAddressByPrivateKey(sk, netType)
 		if err != nil {
 			return "", err
 		}
-		covertTxId, err := filterTransByInputaddrByAPI(skAddr)
+		covertTxId, err := Transaction.FilterTransByInputaddr(client, skAddr)
 		// 如果地址没有交易那么说明消息嵌入结束
 		if covertTxId == nil {
 			break
@@ -116,28 +95,18 @@ func extractCovertMsg(parentKey *KeyDerivation.PrivateKey) (string, error) {
 			return "", err
 		}
 		// 获取交易签名，根据私钥提取随机数
-		rawTx, _ := client.GetRawTransaction(covertTxId)
-		signarute := getSignaruteFromTx(rawTx)
-		hash, err := getHashFromTx(rawTx)
+		rawTx, err := client.GetRawTransaction(covertTxId)
 		if err != nil {
 			return "", err
 		}
-		r := signarute.R()
-		s := signarute.S()
-		d := new(secp256k1.ModNScalar)
-		d.SetByteSlice(sk.Key)
-		k := recoverK(d, &r, &s, hash)
-		// 转换后的字节0会出现在数组前部而实际数据出现在后部，会导致结束标志被分割，我们将0字节删除
-		kByte := k.Bytes()
-		kByteT := bytes.TrimLeft(kByte[:], "\x00")
-		kStr := string(kByteT)
-		// 如果提取出的字符串没有意义，则需要计算s.negate()
-		if !utf8.ValidString(kStr) {
-			s.Negate()
-			k := recoverK(d, &r, &s, hash)
-			kByte = k.Bytes()
-			kByteT = bytes.TrimLeft(kByte[:], "\x00")
-			kStr = string(kByteT)
+		signature := Transaction.GetSignaruteFromTx(rawTx)
+		hash, err := Transaction.GetHashFromTx(client, rawTx)
+		if err != nil {
+			return "", err
+		}
+		kStr, err := getPlainText(signature, hash, sk)
+		if err != nil {
+			return "", err
 		}
 		covertMsg += kStr
 		isEnd, msg := findEndFlag(covertMsg, "ENDEND")
@@ -146,6 +115,37 @@ func extractCovertMsg(parentKey *KeyDerivation.PrivateKey) (string, error) {
 		}
 	}
 	return covertMsg, nil
+}
+
+// 根据预先计算的签名、哈希等提取明文，包括解密、去除先导0、判断s是否取反（在计算签名时如果s超过一半则会取反）
+func getPlainText(signature *ecdsa.Signature, hash []byte, sk *Key.PrivateKey) (string, error) {
+	r := signature.R()
+	s := signature.S()
+	d := new(secp256k1.ModNScalar)
+	d.SetByteSlice(sk.Key)
+	k := recoverK(d, &r, &s, hash)
+	// 转换后的字节0会出现在数组前部而实际数据出现在后部，会导致结束标志被分割，我们将0字节删除
+	kByte := k.Bytes()
+	kByteT := bytes.Trim(kByte[:], "\x00")
+	plainK, err := Crypto.Decrypt(kByte[:], keyAES)
+	if err != nil {
+		return "", err
+	}
+
+	kStr := string(plainK)
+	// 如果提取出的字符串没有意义，则需要计算s.negate()
+	if !utf8.ValidString(kStr) {
+		s.Negate()
+		k = recoverK(d, &r, &s, hash)
+		kByte = k.Bytes()
+		kByteT = bytes.TrimLeft(kByte[:], "\x00")
+		plainK, err = Crypto.Decrypt(kByteT, keyAES)
+		if err != nil {
+			return "", err
+		}
+		kStr = string(plainK)
+	}
+	return kStr, nil
 }
 
 // findEndFlag 判断当前提取的字符串是否包含结束标志，如果包含则截取结束标志之前的内容并返回true
@@ -161,15 +161,15 @@ func findEndFlag(str, end string) (bool, string) {
 // filterLeakTx 筛选泄露交易，第round轮通信使用第round-1个主公钥
 func filterLeakTx(round int) (*chainhash.Hash, string, error) {
 	mpkId := round - 1
-	mpk, err := pkroot.ChildPublicKeyDeprive(uint32(mpkId))
+	mpk, err := pkRoot.ChildPublicKeyDeprive(uint32(mpkId))
 	if err != nil {
 		return nil, "", err
 	}
-	mpkAddress, err := KeyDerivation.GetAddressByPubKey(mpk)
+	mpkAddress, err := Key.GetAddressByPubKey(mpk, netType)
 	if err != nil {
 		return nil, "", err
 	}
-	leakTxId, err := filterTransByInputaddrByAPI(mpkAddress)
+	leakTxId, err := Transaction.FilterTransByInputaddr(client, mpkAddress)
 	if err != nil {
 		return leakTxId, "", nil
 	}
@@ -177,10 +177,10 @@ func filterLeakTx(round int) (*chainhash.Hash, string, error) {
 }
 
 // getPrivkeyFromTrans 根据泄露随机数提取泄露交易的密钥
-func getPrivkeyFromTrans(round int, kleak *secp256k1.ModNScalar, txId *chainhash.Hash, addr string) (*KeyDerivation.PrivateKey, error) {
+func getPrivkeyFromTrans(round int, kleak *secp256k1.ModNScalar, txId *chainhash.Hash, addr string) (*Key.PrivateKey, error) {
 	rawTx, _ := client.GetRawTransaction(txId)
-	signature := getSignaruteFromTx(rawTx)
-	hash, err := getHashFromTx(rawTx)
+	signature := Transaction.GetSignaruteFromTx(rawTx)
+	hash, err := Transaction.GetHashFromTx(client, rawTx)
 	if err != nil {
 		return nil, err
 	}
@@ -189,99 +189,43 @@ func getPrivkeyFromTrans(round int, kleak *secp256k1.ModNScalar, txId *chainhash
 	d := recoverD(kleak, &r, &s, hash)
 	//	将d转换为*KeyDerivation.PrivateKey格式
 	priK := d.Bytes()
-	privateKey := KeyDerivation.GenerateEntireParentKey(pkroot, priK[:], uint32(round-1))
+	privateKey := Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
 
 	// 如果提取出私钥对应的地址不是实际地址，则需要计算s.negate()
-	if addr2, _ := KeyDerivation.GetAddressByPrivKey(privateKey); addr2 != addr {
+	if addr2, _ := Key.GetAddressByPrivateKey(privateKey, netType); addr2 != addr {
 		s.Negate()
 		d = recoverD(kleak, &r, &s, hash)
 		priK = d.Bytes()
-		privateKey = KeyDerivation.GenerateEntireParentKey(pkroot, priK[:], uint32(round-1))
+		privateKey = Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
+		if addr3, _ := Key.GetAddressByPrivateKey(privateKey, netType); addr3 != addr {
+			return nil, errors.New("get private key error")
+		}
 	}
 	return privateKey, nil
 }
 
-// getSignaruteFromTx 提取交易签名
-func getSignaruteFromTx(rawTx *btcutil.Tx) *ecdsa.Signature {
-	signatureScript := hex.EncodeToString(rawTx.MsgTx().TxIn[0].SignatureScript)
-	sig := getsigFromHex(signatureScript)
-	r := sig.R()
-	s := sig.S()
-	//if Share.IsTxSignOver[*rawTx.Hash()] {
-	//	s.Negate()
-	//}
-	sigOrigin := ecdsa.NewSignature(&r, &s)
-	return sigOrigin
+// recoverK 已知私钥求随机数
+func recoverK(d, r, s *secp256k1.ModNScalar, hash []byte) *secp256k1.ModNScalar {
+	var k *secp256k1.ModNScalar
+	var e secp256k1.ModNScalar
+	e.SetByteSlice(hash)
+	dr := new(secp256k1.ModNScalar).Mul2(d, r)
+	sum := e.Add(dr)
+	sinv := new(secp256k1.ModNScalar).InverseValNonConst(s)
+	k = sinv.Mul(sum)
+	return k
 }
 
-// getHashFromTx 提取交易签名数据
-func getHashFromTx(rawTx *btcutil.Tx) ([]byte, error) {
-	var script []byte
-	var hashType txscript.SigHashType
-	tx := new(wire.MsgTx)
-	var idx int
-	idx = 0
-	tx = rawTx.MsgTx()
-	hashType = 1
-	script = getScript(rawTx.MsgTx(), client)
-	hash, err := txscript.CalcSignatureHash(script, hashType, tx, idx)
-	if err != nil {
-		return nil, err
-	}
-	return hash, nil
-}
+// recoverD 已知随机数求私钥
+func recoverD(k, r, s *secp256k1.ModNScalar, hash []byte) *secp256k1.ModNScalar {
+	var d *secp256k1.ModNScalar
+	var e secp256k1.ModNScalar
+	e.SetByteSlice(hash)
 
-// filterTransByInputaddrByAPI 模拟主网查询请求，任意发送一个地址的请求，直接返回隐蔽交易的id（本地simnet网络无法调用第三方api）
-func filterTransByInputaddrByAPI(addr string) (*chainhash.Hash, error) {
-	url := fmt.Sprintf("https://api.3xpl.com/bitcoin/address/%s?token=3A0_t3st3xplor3rpub11cb3t4efcd21748a5e&data=events", addr)
-	resp, err := http.Get(url)
-	if resp.StatusCode != 200 {
-		log.Fatalf("请求失败：%s", resp.Status)
-		return nil, err
-	}
-	defer resp.Body.Close()
+	ks := new(secp256k1.ModNScalar).Mul2(k, s)
+	ksMinusE := ks.Add(e.Negate())
 
-	// 模拟由api返回交易id
-	switch addr {
-	case "SRMMzEu1AtnTfQorrE1CAiTQ2AdVgfiwp6":
-		hash, _ := chainhash.NewHashFromStr("7dc57554c6ed8e07a24075d071365e3cee8a6bef4b1a5dcd7c36563930cd6ef7")
-		return hash, nil
-	case "SiGGuKwQ2WP1uZ63TBVk1E6mb3qPyqrnEg":
-		hash, _ := chainhash.NewHashFromStr("15e49635e0aa253dbda5599fe5d12d226ed4515474e0e917ff87d7a17cc855a6")
-		return hash, nil
-	case "SNb2cVFfzTW4ecMyRg7DncL4vKbFka9mGA":
-		hash, _ := chainhash.NewHashFromStr("961bd48ea3e6ef6b15f915932eb2c9a4bd673bc8a1e331253f4f241c3a867357")
-		return hash, nil
-	case "SjJaJhDBcWUW2x8UUiXrucpqZMW4GfEbFn":
-		hash, _ := chainhash.NewHashFromStr("8761830f5305546ed509f8de975884b1a15cc62a17002bbb6e4c72d906267dcc")
-		return hash, nil
-	case "STGeYnmKs1XRRUdY5xBWQgkDe12XM69uPR":
-		hash, _ := chainhash.NewHashFromStr("b0d56f66263daad88cfa097ffa3667c07d745536cf6af985e97e6cde590afce4")
-		return hash, nil
-	case "SZKehtZnRaRD9xX3TWzPaJ1noWJPewsvbz":
-		hash, _ := chainhash.NewHashFromStr("40fa44c28173b61ee4806203a1596b65091dad881977d5c72bf116dfd390758a")
-		return hash, nil
-	case "Sbw2ujZf3zPw1xqKEFdKsYnfCKWZLodjHn":
-		hash, _ := chainhash.NewHashFromStr("e8a18596f108e67530f4b4343971d34f88427ea88ecee15d2c9b149ad3f9988e")
-		return hash, nil
-	case "ScnZkmpzFhkTqDggW58ngUrBZQ6kz6Yx5Y":
-		hash, _ := chainhash.NewHashFromStr("003d0252950b232b837b3075f0581bf83ad3f2af44350ba54d9319745a8e0a0e")
-		return hash, nil
-	case "SkcyqqePBo4YBPbkm3HsFXuCXnmK9XmVCj":
-		hash, _ := chainhash.NewHashFromStr("97ad7d09eae2312b3a494b5db20615db34c7795afc42b1a164293adda418fef7")
-		return hash, nil
-		//case "ScECtJUTBteEKBh8s5ZNZkeUa6Rutz9vK8":
-		//	hash, _ := chainhash.NewHashFromStr("88022519083fee764f6c737bfdc704f372caf48223d4a5094c5ae118f9ce8079")
-		//	return hash, nil
-		//case "SS6TEYptYhuDDwPvJEtbfYRdPGVxNKEDY9":
-		//	hash, _ := chainhash.NewHashFromStr("1ff3be006e37cb1962956d9a9ae0ec8ea1c2fe75f3e114b6e7c153e7a34cebd4")
-		//	return hash, nil
-		//case "Sft65bpbVnAoBYN3d78YXr2pHHVRjYDmdv":
-		//	hash, _ := chainhash.NewHashFromStr("9630ba724859685d19852d9b6e84892dff64c098990796e017716d6b06efc09b")
-		//	return hash, nil
-		//case "Sc4DW59hYDmyz8ZNZZdR7wSNkZt99XrydU":
-		//	hash, _ := chainhash.NewHashFromStr("1a2134cb448864b232fc00d3e954fb0b845a90cb36fe8be8d749a6d89571401b")
-		//	return hash, nil
-	}
-	return nil, errors.New("can't get trans by input address")
+	sinr := new(secp256k1.ModNScalar).InverseValNonConst(r)
+	d = sinr.Mul(ksMinusE)
+	return d
 }

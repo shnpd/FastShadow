@@ -9,12 +9,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8074cf3a-9466-4396-ba19-31c082b552aa" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EmbedMsg/EmbedComplete.go" beforeDir="false" afterPath="$PROJECT_DIR$/EmbedMsg/EmbedComplete.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ExtractMsg/ExtractComplete.go" beforeDir="false" afterPath="$PROJECT_DIR$/ExtractMsg/ExtractComplete.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Transaction/Transaction.go" beforeDir="false" afterPath="$PROJECT_DIR$/Transaction/Transaction.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Transfer/transfer.go" beforeDir="false" afterPath="$PROJECT_DIR$/Transfer/transfer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TimeCost/Embed/EmbedAuxiliary.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/TimeCost/Embed/EmbedComplte.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/TimeCost/Embed/variables.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/TimeCost/Extract/ExtractAuxiliary.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/TimeCost/Extract/ExtractComplete.go" beforeDir="false" afterPath="$PROJECT_DIR$/TimeCost/Extract/ExtractComplete.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,8 +73,8 @@
   "keyToString": {
     "DefaultGoTemplateProperty": "Go Application",
     "Go Build.go build covertCommunication/DataAnalysis.executor": "Run",
-    "Go Build.go build covertCommunication/EmbedMsg.executor": "Debug",
-    "Go Build.go build covertCommunication/ExtractMsg.executor": "Debug",
+    "Go Build.go build covertCommunication/EmbedMsg.executor": "Run",
+    "Go Build.go build covertCommunication/ExtractMsg.executor": "Run",
     "Go Build.go build covertCommunication/Test (1).executor": "Run",
     "Go Build.go build covertCommunication/Test.executor": "Run",
     "Go Build.go build covertCommunication/Test/generate.executor": "Run",
@@ -95,7 +96,7 @@
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
     "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/CODE/GoLand/CovertCommunication",
+    "last_opened_file_path": "D:/CODE/GoLand/CovertCommunication/TimeCost/Extract",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
@@ -111,6 +112,8 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\CODE\GoLand\CovertCommunication\TimeCost\Extract" />
+      <recent name="D:\CODE\GoLand\CovertCommunication\TimeCost\Embed" />
       <recent name="D:\CODE\GoLand\CovertCommunication\Crypto" />
       <recent name="D:\CODE\GoLand\CovertCommunication\DataAnalysis" />
     </key>
@@ -127,7 +130,7 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="Go Build.go build covertCommunication/EmbedMsg">
+  <component name="RunManager" selected="Go Build.go build covertCommunication/ExtractMsg">
     <configuration name="go build covertCommunication/DataAnalysis" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="covertCommunication" />
       <working_directory value="$PROJECT_DIR$" />
@@ -175,9 +178,9 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Build.go build covertCommunication/ExtractMsg" />
         <item itemvalue="Go Build.go build covertCommunication/EmbedMsg" />
         <item itemvalue="Go Build.go build covertCommunication/Transfer" />
-        <item itemvalue="Go Build.go build covertCommunication/ExtractMsg" />
         <item itemvalue="Go Build.go build scratch.go" />
         <item itemvalue="Go Build.go build covertCommunication/DataAnalysis" />
       </list>
@@ -212,11 +215,6 @@
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/TimeCost/Extract/ExtractComplete.go</url>
-          <line>67</line>
-          <option name="timeStamp" value="10" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/ExtractMsg/ExtractComplete.go</url>
           <line>78</line>
