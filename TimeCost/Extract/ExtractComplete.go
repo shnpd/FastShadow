@@ -45,7 +45,7 @@ func init() {
 func main() {
 	defer client.Shutdown()
 	round := 1
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		start := time.Now()
 		// 筛选泄露交易id
 		leakId, mAddr, err := filterLeakTx(round)
@@ -58,15 +58,15 @@ func main() {
 		// 通过泄露交易提取主密钥
 		msk, err := getPrivkeyFromTrans(round, kLeak, leakId, mAddr)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal(err)
 		}
 
 		//	提取秘密消息
 		covertMsg, err := extractCovertMsg(msk)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal(err)
 		}
-		fmt.Printf("the covert message is: %s", covertMsg)
+		fmt.Printf("the covert message is: %s\n", covertMsg)
 		duration := time.Since(start)
 		fmt.Println(duration)
 	}
@@ -86,7 +86,7 @@ func extractCovertMsg(parentKey *Key.PrivateKey) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		covertTxId, err := Transaction.FilterTransByInputaddr(client, skAddr)
+		covertTxId, err := Transaction.FilterTransByInputaddrByAPI(client, skAddr)
 		// 如果地址没有交易那么说明消息嵌入结束
 		if covertTxId == nil {
 			break
@@ -127,7 +127,7 @@ func getPlainText(signature *ecdsa.Signature, hash []byte, sk *Key.PrivateKey) (
 	// 转换后的字节0会出现在数组前部而实际数据出现在后部，会导致结束标志被分割，我们将0字节删除
 	kByte := k.Bytes()
 	kByteT := bytes.Trim(kByte[:], "\x00")
-	plainK, err := Crypto.Decrypt(kByte[:], keyAES)
+	plainK, err := Crypto.Decrypt(kByteT[:], keyAES)
 	if err != nil {
 		return "", err
 	}
@@ -169,7 +169,7 @@ func filterLeakTx(round int) (*chainhash.Hash, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	leakTxId, err := Transaction.FilterTransByInputaddr(client, mpkAddress)
+	leakTxId, err := Transaction.FilterTransByInputaddrByAPI(client, mpkAddress)
 	if err != nil {
 		return leakTxId, "", nil
 	}
@@ -189,19 +189,21 @@ func getPrivkeyFromTrans(round int, kleak *secp256k1.ModNScalar, txId *chainhash
 	d := recoverD(kleak, &r, &s, hash)
 	//	将d转换为*KeyDerivation.PrivateKey格式
 	priK := d.Bytes()
-	privateKey := Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
+	prikSlice := priK[:]
+	//privateKey := Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
 
 	// 如果提取出私钥对应的地址不是实际地址，则需要计算s.negate()
-	if addr2, _ := Key.GetAddressByPrivateKey(privateKey, netType); addr2 != addr {
+	if addr2, _ := Key.GetAddressByKey(&prikSlice, netType); addr2 != addr {
 		s.Negate()
 		d = recoverD(kleak, &r, &s, hash)
 		priK = d.Bytes()
-		privateKey = Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
-		if addr3, _ := Key.GetAddressByPrivateKey(privateKey, netType); addr3 != addr {
+		prikSlice = priK[:]
+		//privateKey = Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
+		if addr3, _ := Key.GetAddressByKey(&prikSlice, netType); addr3 != addr {
 			return nil, errors.New("get private key error")
 		}
 	}
-	return privateKey, nil
+	return Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1)), nil
 }
 
 // recoverK 已知私钥求随机数

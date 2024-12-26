@@ -47,6 +47,7 @@ func main() {
 
 	// 筛选泄露交易id
 	leakId, mAddr, err := filterLeakTx(round)
+	fmt.Println(leakId.String())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,13 +57,13 @@ func main() {
 	// 通过泄露交易提取主密钥
 	msk, err := getPrivkeyFromTrans(round, kLeak, leakId, mAddr)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 
 	//	提取秘密消息
 	covertMsg, err := extractCovertMsg(msk)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	fmt.Printf("the covert message is: %s", covertMsg)
 }
@@ -183,19 +184,23 @@ func getPrivkeyFromTrans(round int, kleak *secp256k1.ModNScalar, txId *chainhash
 	d := recoverD(kleak, &r, &s, hash)
 	//	将d转换为*KeyDerivation.PrivateKey格式
 	priK := d.Bytes()
-	privateKey := Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
+	prikSlice := priK[:]
+	//privateKey := Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
 
 	// 如果提取出私钥对应的地址不是实际地址，则需要计算s.negate()
-	if addr2, _ := Key.GetAddressByPrivateKey(privateKey, netType); addr2 != addr {
+	if addr2, _ := Key.GetAddressByKey(&prikSlice, netType); addr2 != addr {
 		s.Negate()
 		d = recoverD(kleak, &r, &s, hash)
 		priK = d.Bytes()
-		privateKey = Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
-		if addr3, _ := Key.GetAddressByPrivateKey(privateKey, netType); addr3 != addr {
+		prikSlice = priK[:]
+
+		//privateKey = Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1))
+		if addr3, _ := Key.GetAddressByKey(&prikSlice, netType); addr3 != addr {
 			return nil, errors.New("get private key error")
 		}
 	}
-	return privateKey, nil
+
+	return Key.GenerateEntireKey(pkRoot, priK[:], uint32(round-1)), nil
 }
 
 // recoverK 已知私钥求随机数

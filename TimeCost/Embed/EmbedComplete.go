@@ -5,6 +5,7 @@ import (
 	"covertCommunication/Key"
 	"covertCommunication/RPC"
 	"covertCommunication/Transaction"
+	"covertCommunication/Transfer"
 	"fmt"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
@@ -38,10 +39,15 @@ func init() {
 }
 
 func main() {
-
+	err := Transfer.Transfer(0, 13)
+	if err != nil {
+		log.Fatal(err)
+	}
 	client := RPC.InitClient("localhost:28335", netType)
+	client.Generate(1)
+	time.Sleep(1 * time.Second)
 	// 解锁钱包
-	err := client.WalletPassphrase("ts0", 6000)
+	err = client.WalletPassphrase("ts0", 6000)
 	if err != nil {
 		return
 	}
@@ -49,35 +55,36 @@ func main() {
 
 	kLeak := []byte("leak Random")
 	endFlag := "ENDEND" //结束标志
-	covertMsg := "123456789012345678901234567890123456789012345678901234567890"
+	covertMsg := "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
 
 	// 添加结束标志并加密，加密后的消息可以近似认为是随机的，这样作为随机因子嵌入时与实际生成的随机因子无法区分
 	covertMsg += endFlag
-
-	// 计算嵌入消息的字节数以及需要的隐蔽交易数（每个交易可以嵌入32字节）
-	byteCnt := len(covertMsg)
-	msgCnt := (byteCnt + 31) / 32
-	// 字符串每32字节划分
-	splitMsg := Split32bytes([]byte(covertMsg))
-
-	// 加密每个分组
-	var encryptMsg [][]byte
-	for _, v := range splitMsg {
-		cipher, err := Crypto.Encrypt(v, keyAES)
-		if err != nil {
-			log.Fatal(err)
-		}
-		encryptMsg = append(encryptMsg, cipher)
-	}
 	//通信轮数
-	for round := 1; round <= 5; round++ {
 
+	for round := 1; round <= 5; round++ {
+		// 计算嵌入消息的字节数以及需要的隐蔽交易数（每个交易可以嵌入32字节）
+		byteCnt := len(covertMsg)
+		msgCnt := (byteCnt + 31) / 32
+		// 字符串每32字节划分
+		splitMsg := Split32bytes([]byte(covertMsg))
+		if round == 1 {
+			fmt.Println(msgCnt)
+		}
+		// 加密每个分组
+		var encryptMsg [][]byte
+		for _, v := range splitMsg {
+			cipher, err := Crypto.Encrypt(v, keyAES)
+			if err != nil {
+				log.Fatal(err)
+			}
+			encryptMsg = append(encryptMsg, cipher)
+		}
 		// 生成当前轮的主密钥,并派生多个私钥
 		msk1, err := Key.GenerateMsk(client, skroot, round-1, netType)
 		if err != nil {
 			log.Fatal(err)
 		}
-		skList1, err := msk1.DeprivCntKeys(client, 0, 10, netType)
+		skList1, err := msk1.DeprivCntKeys(client, 0, 15, netType)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -116,30 +123,32 @@ func main() {
 		start := time.Now()
 
 		//	发送隐蔽交易
-		var covertTxid []*chainhash.Hash
-		covertTxid, err = SendCovertTransaction(client, addressList1, addressList2, msgCnt, encryptMsg)
+		covertTx, err := SendCovertTransaction(client, addressList1, addressList2, msgCnt, encryptMsg)
 		if err != nil {
 			fmt.Println(err)
 			return
-		}
-		for _, v := range covertTxid {
-			fmt.Printf("Covert transaction id: %s\n", v.String())
 		}
 
 		// 发送泄露交易
-		leakTrans, err := SendLeakTrans(client, msk1, &kLeak)
+		leakTx, err := SendLeakTrans(client, msk1, msk2, &kLeak)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		fmt.Printf("leak transaction id: %s\n", leakTrans.String())
 		duration := time.Since(start)
 		fmt.Println(duration)
-		_, err = client.Generate(1)
+		//_, err = client.Generate(1)
+		client.Generate(1)
+		time.Sleep(3 * time.Second)
 		if err != nil {
 			log.Fatal(err)
 		}
-
+		if round == 5 {
+			for _, v := range covertTx {
+				fmt.Printf("Covert transaction id: %s\n", v.String())
+			}
+			fmt.Printf("leak transaction id: %s\n", leakTx.String())
+		}
 	}
 }
 
@@ -159,13 +168,16 @@ func Split32bytes(msg []byte) [][]byte {
 }
 
 // SendLeakTrans TODO:生成银行地址作为接收地址
-// SendLeakTrans 发送round轮的主密钥的泄露交易，返回泄露交易id
-func SendLeakTrans(client *rpcclient.Client, msk *Key.PrivateKey, kLeak *[]byte) (*chainhash.Hash, error) {
-	sourceAddr, err := Key.GetAddressByPrivateKey(msk, netType)
+// SendLeakTrans 发送round轮的主密钥的泄露交易，返回泄露交易id，目标地址选择为下一轮交易的主密钥
+func SendLeakTrans(client *rpcclient.Client, msk1, msk2 *Key.PrivateKey, kLeak *[]byte) (*chainhash.Hash, error) {
+
+	sourceAddr, err := Key.GetAddressByPrivateKey(msk1, netType)
+	destAddr, err := Key.GetAddressByPrivateKey(msk2, netType)
+
 	if err != nil {
 		return nil, err
 	}
-	txId, err := Transaction.EntireSendTrans(client, sourceAddr, "SYZPAZEjXy7S4jbsUHqWUgv2FYomsR3RVS", 1, kLeak)
+	txId, err := Transaction.EntireSendTrans(client, sourceAddr, destAddr, 1, kLeak)
 	if err != nil {
 		return nil, err
 	}

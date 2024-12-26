@@ -1,4 +1,4 @@
-package main
+package Transfer
 
 import (
 	"covertCommunication/Key"
@@ -32,10 +32,10 @@ func main() {
 	//client.Generate(299)
 	//time.Sleep(time.Second * 3)
 	//
-	err := transfer(0, 5)
-	if err != nil {
-		log.Fatal(err)
-	}
+	//err := transfer(0, 5)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 
 	client.Generate(1)
 	//rawTx := generateTransFromUTXO("b5c9c14ac0c13123cf368136fd50293fe0dd9838384423da6a1a30ab0b26db0e", "SRMMzEu1AtnTfQorrE1CAiTQ2AdVgfiwp6", 10)
@@ -44,7 +44,7 @@ func main() {
 }
 
 // 从挖矿地址向第id个私钥下派生的cnt个地址各转入一个utxo
-func transfer(id, cnt int) error {
+func Transfer(id, cnt int) error {
 	skroot, _ := Key.GenerateMasterKey([]byte("initseed"))
 	msk, _ := skroot.ChildPrivateKeyDeprive(uint32(id))
 	err := Key.ImportKey(client, msk, netType)
@@ -54,7 +54,6 @@ func transfer(id, cnt int) error {
 	utxos, _ := client.ListUnspent()
 	num := 0
 	for _, utxo := range utxos {
-		time.Sleep(500 * time.Millisecond)
 		if utxo.Address != miningAddr {
 			continue
 		}
@@ -87,6 +86,7 @@ func transfer(id, cnt int) error {
 			return err
 		}
 		num++
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	return nil

@@ -13,6 +13,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 	"log"
+	"net/http"
 	"strconv"
 )
 
@@ -156,25 +157,7 @@ func GetSigFromHex(HexSig string) *ecdsa.Signature {
 	return sig
 }
 
-// FilterTransByInputaddr 根据输入地址筛选交易，默认一个地址只参与一个交易(本方法只在simnet网络中使用，在实际mainnet中可以直接调用第三方api筛选交易)
-func FilterTransByInputaddr(client *rpcclient.Client, addr string) (*chainhash.Hash, error) {
-	transactions, _ := client.ListTransactionsCount("*", 99999)
-	// 遍历所有交易依次筛选
-	for _, v := range transactions {
-		txId, err := chainhash.NewHashFromStr(v.TxID)
-		// coinbase交易没有输入
-		if v.Generated {
-			continue
-		}
-		// 获取交易的输入地址
-		inputAddr, err := getTransInAddr(client, txId)
-		if inputAddr == addr {
-			return txId, err
-		}
-	}
-	return nil, fmt.Errorf("not exist transaction with input address:%s", addr)
-}
-
+// 获取交易的输入地址
 func getTransInAddr(client *rpcclient.Client, txHash *chainhash.Hash) (string, error) {
 	txDetails, err := client.GetRawTransactionVerbose(txHash)
 	if err != nil {
@@ -200,4 +183,77 @@ func getTransInAddr(client *rpcclient.Client, txHash *chainhash.Hash) (string, e
 		}
 	}
 	return "", errors.New("get input address error")
+}
+
+// FilterTransByInputaddr 根据输入地址筛选交易，默认一个地址只参与一个交易(本方法只在simnet网络中使用，在实际mainnet中可以直接调用第三方api筛选交易)
+func FilterTransByInputaddr(client *rpcclient.Client, addr string) (*chainhash.Hash, error) {
+	transactions, _ := client.ListTransactionsCount("*", 99999)
+	// 遍历所有交易依次筛选
+	for _, v := range transactions {
+		txId, err := chainhash.NewHashFromStr(v.TxID)
+		// coinbase交易没有输入
+		if v.Generated {
+			continue
+		}
+		// 获取交易的输入地址
+		inputAddr, err := getTransInAddr(client, txId)
+		if inputAddr == addr {
+			return txId, err
+		}
+	}
+	return nil, fmt.Errorf("not exist transaction with input address:%s", addr)
+}
+
+// filterTransByInputaddrByAPI 模拟主网查询请求，任意发送一个地址的请求，直接返回隐蔽交易的id（本地simnet网络无法调用第三方api）
+func FilterTransByInputaddrByAPI(client *rpcclient.Client, addr string) (*chainhash.Hash, error) {
+	url := fmt.Sprintf("https://api.3xpl.com/bitcoin/address/%s?token=3A0_t3st3xplor3rpub11cb3t4efcd21748a5e&data=events", addr)
+	resp, err := http.Get(url)
+	if resp.StatusCode != 200 {
+		log.Fatalf("请求失败：%s", resp.Status)
+		return nil, err
+	}
+	defer resp.Body.Close()
+	// 模拟由api返回交易id
+	switch addr {
+	case "SRMMzEu1AtnTfQorrE1CAiTQ2AdVgfiwp6":
+		hash, _ := chainhash.NewHashFromStr("bfa8d8dac0eb0d7c06feb5e88272edabf882488e9e90d1e6ca901901e3cb7647")
+		return hash, nil
+	case "SiGGuKwQ2WP1uZ63TBVk1E6mb3qPyqrnEg":
+		hash, _ := chainhash.NewHashFromStr("6187c54d900a6ae37568b2c33b80d764af50cb1c2fb13b4ab24366f5cbb25432")
+		return hash, nil
+	case "SNb2cVFfzTW4ecMyRg7DncL4vKbFka9mGA":
+		hash, _ := chainhash.NewHashFromStr("d570c837b2f6b90e4116985f63a6c11aa385945903517f8f68ad834c80d2ccb8")
+		return hash, nil
+	case "SjJaJhDBcWUW2x8UUiXrucpqZMW4GfEbFn":
+		hash, _ := chainhash.NewHashFromStr("a2ce12b44edac96c9a5b5b3f5c68d61880281c08ce1dc75a933f45b5ae3d242f")
+		return hash, nil
+	case "STGeYnmKs1XRRUdY5xBWQgkDe12XM69uPR":
+		hash, _ := chainhash.NewHashFromStr("4e9e70c5592a2a800f27d7a50c8474e38c326c3433d0ce479d369b43de4513ec")
+		return hash, nil
+	case "SZKehtZnRaRD9xX3TWzPaJ1noWJPewsvbz":
+		hash, _ := chainhash.NewHashFromStr("eb8c5843d1c3acace9ddd046a96e0f4183f89a1ca186d8e806a83c26a52120a8")
+		return hash, nil
+	case "Sbw2ujZf3zPw1xqKEFdKsYnfCKWZLodjHn":
+		hash, _ := chainhash.NewHashFromStr("a55d7f5b10a600dff9f431acb07716ded950ba10a470678cc689cb3174e7b008")
+		return hash, nil
+	case "ScnZkmpzFhkTqDggW58ngUrBZQ6kz6Yx5Y":
+		hash, _ := chainhash.NewHashFromStr("1df500db9adbfb1b806abe3f5e7c883e7553e48b8c8fa5d9058e4479b79b598b")
+		return hash, nil
+	case "SkcyqqePBo4YBPbkm3HsFXuCXnmK9XmVCj":
+		hash, _ := chainhash.NewHashFromStr("e671bb55faa4bd5b3979ffef172a982dfec17902b0e0dbc8de4448c008f39add")
+		return hash, nil
+	case "ScECtJUTBteEKBh8s5ZNZkeUa6Rutz9vK8":
+		hash, _ := chainhash.NewHashFromStr("88022519083fee764f6c737bfdc704f372caf48223d4a5094c5ae118f9ce8079")
+		return hash, nil
+	case "SS6TEYptYhuDDwPvJEtbfYRdPGVxNKEDY9":
+		hash, _ := chainhash.NewHashFromStr("1ff3be006e37cb1962956d9a9ae0ec8ea1c2fe75f3e114b6e7c153e7a34cebd4")
+		return hash, nil
+	case "Sft65bpbVnAoBYN3d78YXr2pHHVRjYDmdv":
+		hash, _ := chainhash.NewHashFromStr("9630ba724859685d19852d9b6e84892dff64c098990796e017716d6b06efc09b")
+		return hash, nil
+	case "Sc4DW59hYDmyz8ZNZZdR7wSNkZt99XrydU":
+		hash, _ := chainhash.NewHashFromStr("1a2134cb448864b232fc00d3e954fb0b845a90cb36fe8be8d749a6d89571401b")
+		return hash, nil
+	}
+	return nil, errors.New("can't get trans by input address")
 }

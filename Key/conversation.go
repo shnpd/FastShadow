@@ -89,6 +89,19 @@ func GetAddressByPrivateKey(key *PrivateKey, netType string) (string, error) {
 	return address, nil
 }
 
+// GetAddressByPrivateKey 根据PrivateKey获取对应的地址
+func GetAddressByKey(key *[]byte, netType string) (string, error) {
+	prikWIF, err := Key2WIF(*key, netType)
+	if err != nil {
+		return "", err
+	}
+	address, err := GetAddressByWIF(prikWIF, netType)
+	if err != nil {
+		return "", err
+	}
+	return address, nil
+}
+
 // GetAddressByPubKey 根据PublicKey获取对应的地址
 func GetAddressByPubKey(key *PublicKey, netType string) (string, error) {
 	var param chaincfg.Params

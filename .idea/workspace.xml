@@ -9,13 +9,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="8074cf3a-9466-4396-ba19-31c082b552aa" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/covertCommunication.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/covertCommunication.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TimeCost/Embed/EmbedAuxiliary.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TimeCost/Embed/EmbedComplte.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TimeCost/Embed/variables.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TimeCost/Extract/ExtractAuxiliary.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TimeCost/Extract/ExtractComplete.go" beforeDir="false" afterPath="$PROJECT_DIR$/TimeCost/Extract/ExtractComplete.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -69,47 +66,50 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultGoTemplateProperty": "Go Application",
-    "Go Build.go build covertCommunication/DataAnalysis.executor": "Run",
-    "Go Build.go build covertCommunication/EmbedMsg.executor": "Run",
-    "Go Build.go build covertCommunication/ExtractMsg.executor": "Run",
-    "Go Build.go build covertCommunication/Test (1).executor": "Run",
-    "Go Build.go build covertCommunication/Test.executor": "Run",
-    "Go Build.go build covertCommunication/Test/generate.executor": "Run",
-    "Go Build.go build covertCommunication/Transfer.executor": "Run",
-    "Go Build.go build scratch.go.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "WebServerToolWindowFactoryState": "true",
-    "WebServerToolWindowPanel.toolwindow.highlight.mappings": "true",
-    "WebServerToolWindowPanel.toolwindow.highlight.symlinks": "true",
-    "WebServerToolWindowPanel.toolwindow.show.date": "false",
-    "WebServerToolWindowPanel.toolwindow.show.permissions": "false",
-    "WebServerToolWindowPanel.toolwindow.show.size": "false",
-    "git-widget-placeholder": "main",
-    "go.import.settings.migrated": "true",
-    "go.sdk.automatically.set": "true",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/CODE/GoLand/CovertCommunication/TimeCost/Extract",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "run.code.analysis.last.selected.profile": "pProject Default",
-    "run.configurations.included.in.services": "true",
-    "settings.editor.selected.configurable": "goland.project.structure"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go Application&quot;,
+    &quot;Go Build.go build covertCommunication/DataAnalysis.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build covertCommunication/EmbedMsg.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build covertCommunication/ExtractMsg.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build covertCommunication/Test (1).executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build covertCommunication/Test.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build covertCommunication/Test/generate.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build covertCommunication/Transfer.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build scratch.go.executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build scratch_9.go (1).executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build scratch_9.go (2).executor&quot;: &quot;Run&quot;,
+    &quot;Go Build.go build scratch_9.go.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowPanel.toolwindow.highlight.mappings&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowPanel.toolwindow.highlight.symlinks&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowPanel.toolwindow.show.date&quot;: &quot;false&quot;,
+    &quot;WebServerToolWindowPanel.toolwindow.show.permissions&quot;: &quot;false&quot;,
+    &quot;WebServerToolWindowPanel.toolwindow.show.size&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/CODE/GoLand/CovertCommunication&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;run.configurations.included.in.services&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;goland.project.structure&quot;
   },
-  "keyToStringList": {
-    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
-      "go"
+  &quot;keyToStringList&quot;: {
+    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
+      &quot;go&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\CODE\GoLand\CovertCommunication\TimeCost\Extract" />
@@ -130,23 +130,12 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="Go Build.go build covertCommunication/ExtractMsg">
-    <configuration name="go build covertCommunication/DataAnalysis" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
-      <module name="covertCommunication" />
+  <component name="RunManager" selected="Go Build.go build covertCommunication/Test">
+    <configuration default="true" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <working_directory value="$PROJECT_DIR$" />
-      <kind value="PACKAGE" />
-      <package value="covertCommunication/DataAnalysis" />
+      <kind value="FILE" />
       <directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$/DataAnalysis/GetData.go" />
-      <method v="2" />
-    </configuration>
-    <configuration name="go build covertCommunication/EmbedMsg" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
-      <module name="covertCommunication" />
-      <working_directory value="$PROJECT_DIR$" />
-      <kind value="PACKAGE" />
-      <package value="covertCommunication/EmbedMsg" />
-      <directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$/EmbedMsg/EmbedComplete.go" />
+      <filePath value="$PROJECT_DIR$" />
       <method v="2" />
     </configuration>
     <configuration name="go build covertCommunication/ExtractMsg" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
@@ -158,31 +147,57 @@
       <filePath value="$PROJECT_DIR$/ExtractMsg/ExtractComplete.go" />
       <method v="2" />
     </configuration>
-    <configuration name="go build covertCommunication/Transfer" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+    <configuration name="go build covertCommunication/Test" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="covertCommunication" />
       <working_directory value="$PROJECT_DIR$" />
-      <kind value="PACKAGE" />
-      <package value="covertCommunication/Transfer" />
+      <kind value="FILE" />
+      <package value="covertCommunication/Test" />
       <directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$/Transfer/transfer.go" />
+      <filePath value="$PROJECT_DIR$/Test/test.go" />
       <method v="2" />
     </configuration>
-    <configuration name="go build scratch.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
-      <module name="covertCommunication" />
+    <configuration name="go build scratch_9.go (1)" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="DDSAC" />
       <working_directory value="$PROJECT_DIR$" />
       <kind value="FILE" />
       <package value="covertCommunication" />
       <directory value="$PROJECT_DIR$" />
-      <filePath value="$APPLICATION_CONFIG_DIR$/scratches/scratch.go" />
+      <filePath value="$APPLICATION_CONFIG_DIR$/scratches/scratch_9.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build scratch_9.go (2)" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="DDSAC" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
+      <package value="covertCommunication" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$APPLICATION_CONFIG_DIR$/scratches/scratch_9.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build scratch_9.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="DDSAC" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="FILE" />
+      <package value="covertCommunication" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$APPLICATION_CONFIG_DIR$/scratches/scratch_9.go" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="GoTestRunConfiguration" factoryName="Go Test">
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="DIRECTORY" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Build.go build covertCommunication/Test" />
+        <item itemvalue="Go Build.go build scratch_9.go (2)" />
+        <item itemvalue="Go Build.go build scratch_9.go (1)" />
+        <item itemvalue="Go Build.go build scratch_9.go" />
         <item itemvalue="Go Build.go build covertCommunication/ExtractMsg" />
-        <item itemvalue="Go Build.go build covertCommunication/EmbedMsg" />
-        <item itemvalue="Go Build.go build covertCommunication/Transfer" />
-        <item itemvalue="Go Build.go build scratch.go" />
-        <item itemvalue="Go Build.go build covertCommunication/DataAnalysis" />
       </list>
     </recent_temporary>
   </component>
