@@ -5,6 +5,7 @@ import (
 	"covertCommunication/Key"
 	"covertCommunication/RPC"
 	"covertCommunication/Transaction"
+	"covertCommunication/Transfer"
 	"fmt"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
@@ -37,18 +38,22 @@ func init() {
 }
 
 func main() {
-
+	err := Transfer.Transfer(0, 5)
+	if err != nil {
+		log.Fatal(err)
+	}
 	client := RPC.InitClient("localhost:28335", netType)
 	// 解锁钱包
-	err := client.WalletPassphrase("ts0", 6000)
+	err = client.WalletPassphrase("ts0", 6000)
 	if err != nil {
+		log.Fatal(err)
 		return
 	}
 	defer client.Shutdown()
 
-	kLeak := []byte("leak Random")
+	kLeak := []byte("extract")
 	endFlag := "ENDEND" //结束标志
-	covertMsg := "123456789012345678901234567890123456789012345678901234567890"
+	covertMsg := "covert message"
 
 	// 添加结束标志并加密，加密后的消息可以近似认为是随机的，这样作为随机因子嵌入时与实际生成的随机因子无法区分
 	covertMsg += endFlag
@@ -75,7 +80,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	skList1, err := msk1.DeprivCntKeys(client, 0, 10, netType)
+	skList1, err := msk1.DeprivCntKeys(client, 0, msgCnt, netType)
 	if err != nil {
 		log.Fatal(err)
 	}

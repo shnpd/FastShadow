@@ -88,7 +88,7 @@ func GenerateTrans(client *rpcclient.Client, sourceAddr, destAddr string, amount
 
 // SignTrans 签名交易，嵌入秘密消息，并保存特殊q
 func SignTrans(client *rpcclient.Client, rawTx *wire.MsgTx, embedMsg *[]byte) (*wire.MsgTx, error) {
-	signedTx, complete, err, _ := client.SignRawTransaction(rawTx, embedMsg)
+	signedTx, complete, err := client.SignRawTransaction(rawTx, embedMsg)
 	if err != nil {
 		return nil, fmt.Errorf("error signing transaction: %v", err)
 	}
@@ -186,22 +186,16 @@ func getTransInAddr(client *rpcclient.Client, txHash *chainhash.Hash) (string, e
 }
 
 // FilterTransByInputaddr 根据输入地址筛选交易，默认一个地址只参与一个交易(本方法只在simnet网络中使用，在实际mainnet中可以直接调用第三方api筛选交易)
-func FilterTransByInputaddr(client *rpcclient.Client, addr string) (*chainhash.Hash, error) {
-	transactions, _ := client.ListTransactionsCount("*", 99999)
-	// 遍历所有交易依次筛选
-	for _, v := range transactions {
-		txId, err := chainhash.NewHashFromStr(v.TxID)
-		// coinbase交易没有输入
-		if v.Generated {
-			continue
-		}
-		// 获取交易的输入地址
-		inputAddr, err := getTransInAddr(client, txId)
-		if inputAddr == addr {
-			return txId, err
-		}
+func FilterTransByInputaddr(client *rpcclient.Client, addr btcutil.Address) (*chainhash.Hash, error) {
+	tx, err := client.SearchRawTransactions(addr, 0, 10, true, nil)
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("not exist transaction with input address:%s", addr)
+	txid, err := chainhash.NewHashFromStr(tx[0].TxID())
+	if err != nil {
+		return nil, err
+	}
+	return txid, nil
 }
 
 // filterTransByInputaddrByAPI 模拟主网查询请求，任意发送一个地址的请求，直接返回隐蔽交易的id（本地simnet网络无法调用第三方api）

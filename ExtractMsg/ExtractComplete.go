@@ -8,6 +8,8 @@ import (
 	"covertCommunication/Transaction"
 	"errors"
 	"fmt"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
@@ -32,7 +34,7 @@ func init() {
 	// 获取根公钥
 	skRoot, _ := Key.GenerateMasterKey([]byte("initseed"))
 	pkRoot = Key.EntirePublicKeyForPrivateKey(skRoot)
-	kLeakStr = "leak Random"
+	kLeakStr = "extract"
 	keyAES = []byte("1234567890123456")
 	netType = "simnet"
 	client = RPC.InitClient("localhost:28335", netType)
@@ -81,7 +83,11 @@ func extractCovertMsg(parentKey *Key.PrivateKey) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		covertTxId, err := Transaction.FilterTransByInputaddr(client, skAddr)
+		address, err := btcutil.DecodeAddress(skAddr, &chaincfg.SimNetParams)
+		if err != nil {
+			return "", err
+		}
+		covertTxId, err := Transaction.FilterTransByInputaddr(client, address)
 		// 如果地址没有交易那么说明消息嵌入结束
 		if covertTxId == nil {
 			break
@@ -104,6 +110,7 @@ func extractCovertMsg(parentKey *Key.PrivateKey) (string, error) {
 			return "", err
 		}
 		covertMsg += kStr
+		// 如果发现结束标志则提取结束
 		isEnd, msg := findEndFlag(covertMsg, "ENDEND")
 		if isEnd {
 			return msg, nil
@@ -164,7 +171,11 @@ func filterLeakTx(round int) (*chainhash.Hash, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	leakTxId, err := Transaction.FilterTransByInputaddr(client, mpkAddress)
+	address, err := btcutil.DecodeAddress(mpkAddress, &chaincfg.SimNetParams)
+	if err != nil {
+		return nil, "", err
+	}
+	leakTxId, err := Transaction.FilterTransByInputaddr(client, address)
 	if err != nil {
 		return leakTxId, "", nil
 	}

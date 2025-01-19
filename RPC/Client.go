@@ -2,6 +2,7 @@ package RPC
 
 import (
 	"github.com/btcsuite/btcd/rpcclient"
+	"log"
 )
 
 // InitClient 初始化客户端，传入网络类型，其中user和pass我们在启动服务时都设置为对应的网络类型字符串，为简化过程不启动TLS
@@ -17,7 +18,10 @@ func InitClient(host, netType string) *rpcclient.Client {
 	}
 
 	// 创建新的RPC客户端
-	client, _ := rpcclient.New(connCfg, nil)
+	client, err := rpcclient.New(connCfg, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 	// 默认解锁钱包
 	//err := client.WalletPassphrase("ts0", 6000)
 	//if err != nil {

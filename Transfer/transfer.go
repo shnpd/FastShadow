@@ -32,7 +32,7 @@ func main() {
 	//client.Generate(299)
 	//time.Sleep(time.Second * 3)
 	//
-	//err := transfer(0, 5)
+	//err := transfer(0, 10)
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
@@ -88,6 +88,6 @@ func Transfer(id, cnt int) error {
 		num++
 		time.Sleep(500 * time.Millisecond)
 	}
-
+	client.Generate(1)
 	return nil
 }
