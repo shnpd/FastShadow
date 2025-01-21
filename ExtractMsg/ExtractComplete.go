@@ -32,7 +32,7 @@ var (
 // 已知根公钥以及泄露随机数
 func init() {
 	// 获取根公钥
-	skRoot, _ := Key.GenerateMasterKey([]byte("initseed"))
+	skRoot, _ := Key.GenerateMasterKey([]byte("initseed"), netType)
 	pkRoot = Key.EntirePublicKeyForPrivateKey(skRoot)
 	kLeakStr = "extract"
 	keyAES = []byte("1234567890123456")
@@ -75,7 +75,7 @@ func extractCovertMsg(parentKey *Key.PrivateKey) (string, error) {
 	covertMsg := ""
 	for i := 0; ; i++ {
 		// 计算地址，筛选泄露交易
-		sk, err := parentKey.ChildPrivateKeyDeprive(uint32(i))
+		sk, err := parentKey.ChildPrivateKeyDeprive(uint32(i), netType)
 		if err != nil {
 			return "", err
 		}
@@ -163,7 +163,7 @@ func findEndFlag(str, end string) (bool, string) {
 // filterLeakTx 筛选泄露交易，第round轮通信使用第round-1个主公钥
 func filterLeakTx(round int) (*chainhash.Hash, string, error) {
 	mpkId := round - 1
-	mpk, err := pkRoot.ChildPublicKeyDeprive(uint32(mpkId))
+	mpk, err := pkRoot.ChildPublicKeyDeprive(uint32(mpkId), netType)
 	if err != nil {
 		return nil, "", err
 	}

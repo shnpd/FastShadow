@@ -28,11 +28,11 @@ var (
 
 // init 生成根密钥对
 func init() {
-	initSeed := []byte("initseed")
-	skroot, _ = Key.GenerateMasterKey(initSeed)
-	pkroot = Key.EntirePublicKeyForPrivateKey(skroot)
-	bankmsk, _ = skroot.ChildPrivateKeyDeprive(9999)
 	netType = "simnet"
+	initSeed := []byte("initseed")
+	skroot, _ = Key.GenerateMasterKey(initSeed, netType)
+	pkroot = Key.EntirePublicKeyForPrivateKey(skroot)
+	bankmsk, _ = skroot.ChildPrivateKeyDeprive(9999, netType)
 	bankNum = 0
 	keyAES = []byte("1234567890123456")
 

@@ -8,6 +8,8 @@ import (
 	"covertCommunication/Transaction"
 	"errors"
 	"fmt"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
@@ -20,6 +22,7 @@ import (
 
 var (
 	pkRoot   *Key.PublicKey //根公钥
+	skRoot   *Key.PrivateKey
 	mpkSet   []*Key.PublicKey
 	client   *rpcclient.Client //客户端
 	keyAES   []byte
@@ -31,19 +34,25 @@ var (
 // 已知根公钥以及泄露随机数
 func init() {
 	// 获取根公钥
-	skRoot, _ := Key.GenerateMasterKey([]byte("initseed"))
+	netType = "mainnet"
+	skRoot, _ = Key.GenerateMasterKey([]byte("initseed"), netType)
 	pkRoot = Key.EntirePublicKeyForPrivateKey(skRoot)
 	kLeakStr = "leak Random"
 	keyAES = []byte("1234567890123456")
-	netType = "simnet"
 	client = RPC.InitClient("localhost:28335", netType)
 	kLeak = new(secp256k1.ModNScalar)
 	kStrByte := []byte(kLeakStr)
 	kLeak.SetByteSlice(kStrByte)
 
+	err := client.WalletPassphrase("mainnet", 6000)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 }
 func main() {
 	defer client.Shutdown()
+
 	round := 1
 	for i := 0; i < 5; i++ {
 		start := time.Now()
@@ -57,18 +66,21 @@ func main() {
 		}
 		// 通过泄露交易提取主密钥
 		msk, err := getPrivkeyFromTrans(round, kLeak, leakId, mAddr)
+		//if err != nil {
+		//	log.Fatal(err)
+		//}
+		msk, err = Key.GenerateMsk(client, skRoot, round-1, netType)
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		//	提取秘密消息
-		covertMsg, err := extractCovertMsg(msk)
+		_, err = extractCovertMsg(msk)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("the covert message is: %s\n", covertMsg)
 		duration := time.Since(start)
 		fmt.Println(duration)
+		//fmt.Printf("the covert message is: %s\n", covertMsg)
 	}
 
 }
@@ -76,9 +88,9 @@ func main() {
 // extractCovertMsg 基于主密钥不断派生子密钥筛选隐蔽交易，直到生成的密钥没有发起过交易
 func extractCovertMsg(parentKey *Key.PrivateKey) (string, error) {
 	covertMsg := ""
-	for i := 0; ; i++ {
+	for i := 0; i < 127; i++ {
 		// 计算地址，筛选泄露交易
-		sk, err := parentKey.ChildPrivateKeyDeprive(uint32(i))
+		sk, err := parentKey.ChildPrivateKeyDeprive(uint32(i), netType)
 		if err != nil {
 			return "", err
 		}
@@ -86,8 +98,11 @@ func extractCovertMsg(parentKey *Key.PrivateKey) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		covertTxId, err := Transaction.FilterTransByInputaddrByAPI(client, skAddr)
-		// 如果地址没有交易那么说明消息嵌入结束
+		address, err := btcutil.DecodeAddress(skAddr, &chaincfg.MainNetParams)
+		if err != nil {
+			return "", err
+		}
+		covertTxId, err := Transaction.FilterTransByInputaddr(client, address) // 如果地址没有交易那么说明消息嵌入结束
 		if covertTxId == nil {
 			break
 		}
@@ -161,7 +176,7 @@ func findEndFlag(str, end string) (bool, string) {
 // filterLeakTx 筛选泄露交易，第round轮通信使用第round-1个主公钥
 func filterLeakTx(round int) (*chainhash.Hash, string, error) {
 	mpkId := round - 1
-	mpk, err := pkRoot.ChildPublicKeyDeprive(uint32(mpkId))
+	mpk, err := pkRoot.ChildPublicKeyDeprive(uint32(mpkId), netType)
 	if err != nil {
 		return nil, "", err
 	}
@@ -169,11 +184,15 @@ func filterLeakTx(round int) (*chainhash.Hash, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	leakTxId, err := Transaction.FilterTransByInputaddrByAPI(client, mpkAddress)
+	address, err := btcutil.DecodeAddress(mpkAddress, &chaincfg.MainNetParams)
 	if err != nil {
-		return leakTxId, "", nil
+		return nil, "", err
 	}
-	return leakTxId, mpkAddress, err
+	leakTxId, err := Transaction.FilterTransByInputaddr(client, address)
+	if err != nil {
+		return nil, "", err
+	}
+	return leakTxId, mpkAddress, nil
 }
 
 // getPrivkeyFromTrans 根据泄露随机数提取泄露交易的密钥

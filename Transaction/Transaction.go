@@ -88,7 +88,7 @@ func GenerateTrans(client *rpcclient.Client, sourceAddr, destAddr string, amount
 
 // SignTrans 签名交易，嵌入秘密消息，并保存特殊q
 func SignTrans(client *rpcclient.Client, rawTx *wire.MsgTx, embedMsg *[]byte) (*wire.MsgTx, error) {
-	signedTx, complete, err := client.SignRawTransaction(rawTx, embedMsg)
+	signedTx, complete, err, _ := client.SignRawTransaction(rawTx, embedMsg)
 	if err != nil {
 		return nil, fmt.Errorf("error signing transaction: %v", err)
 	}
@@ -187,7 +187,11 @@ func getTransInAddr(client *rpcclient.Client, txHash *chainhash.Hash) (string, e
 
 // FilterTransByInputaddr 根据输入地址筛选交易，默认一个地址只参与一个交易(本方法只在simnet网络中使用，在实际mainnet中可以直接调用第三方api筛选交易)
 func FilterTransByInputaddr(client *rpcclient.Client, addr btcutil.Address) (*chainhash.Hash, error) {
-	tx, err := client.SearchRawTransactions(addr, 0, 10, true, nil)
+	address, err := btcutil.DecodeAddress("16mDJ7EEBjWvyJNX9oyaFS9fMVDjHTJfLZ", &chaincfg.MainNetParams)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := client.SearchRawTransactions(address, 0, 1, true, nil)
 	if err != nil {
 		return nil, err
 	}

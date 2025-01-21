@@ -41,7 +41,7 @@ type PublicKey struct {
 }
 
 // GenerateMasterKey 基于密钥种子生成主密钥
-func GenerateMasterKey(seed []byte) (*PrivateKey, error) {
+func GenerateMasterKey(seed []byte, netType string) (*PrivateKey, error) {
 	hmacSeed := hmac.New(sha512.New, []byte("Bitcoin seed"))
 	_, err := hmacSeed.Write(seed)
 	if err != nil {
@@ -62,11 +62,14 @@ func GenerateMasterKey(seed []byte) (*PrivateKey, error) {
 		Chaincode:    masterPrivateKeyChaincode,
 		Key:          masterPrivateKey,
 	}
+	if netType == "mainnet" {
+		key.Version = mainPrivateWalletVersion
+	}
 	return key, nil
 }
 
 // ChildPrivateKeyDeprive 私钥派生
-func (key *PrivateKey) ChildPrivateKeyDeprive(childIndex uint32) (*PrivateKey, error) {
+func (key *PrivateKey) ChildPrivateKeyDeprive(childIndex uint32, netType string) (*PrivateKey, error) {
 	childIndexBytes := serializeUint32(childIndex)
 	data := PublicKeyForPrivateKey(key.Key)
 	data = append(data, childIndexBytes...)
@@ -89,11 +92,14 @@ func (key *PrivateKey) ChildPrivateKeyDeprive(childIndex uint32) (*PrivateKey, e
 		Depth:        key.Depth + 1,
 		Key:          ki,
 	}
+	if netType == "mainnet" {
+		childKey.Version = mainPrivateWalletVersion
+	}
 	return childKey, nil
 }
 
 // ChildPublicKeyDeprive 公钥派生
-func (key *PublicKey) ChildPublicKeyDeprive(childIndex uint32) (*PublicKey, error) {
+func (key *PublicKey) ChildPublicKeyDeprive(childIndex uint32, netType string) (*PublicKey, error) {
 	childIndexBytes := serializeUint32(childIndex)
 	data := key.Key
 	data = append(data, childIndexBytes...)
@@ -109,12 +115,15 @@ func (key *PublicKey) ChildPublicKeyDeprive(childIndex uint32) (*PublicKey, erro
 		return nil, err
 	}
 	childKey := &PublicKey{
-		Version:      testPublicWalletVersion,
+		Version:      mainPublicWalletVersion,
 		FatherFinger: Crypto.Hash160(key.Key)[:4],
 		ChildNumber:  childIndexBytes,
 		Chaincode:    I[32:],
 		Depth:        key.Depth + 1,
 		Key:          Ki,
+	}
+	if netType != "mainnet" {
+		childKey.Version = testPublicWalletVersion
 	}
 	return childKey, nil
 }
@@ -124,7 +133,7 @@ func (msk *PrivateKey) DeprivCntKeys(client *rpcclient.Client, start, cnt int, n
 	var keySet []*PrivateKey
 	//基于主密钥派生cnt个密钥
 	for i := start; i < start+cnt; i++ {
-		key, _ := msk.ChildPrivateKeyDeprive(uint32(i))
+		key, _ := msk.ChildPrivateKeyDeprive(uint32(i), netType)
 		err := ImportKey(client, key, netType)
 		if err != nil {
 			return nil, err
@@ -175,7 +184,7 @@ func GenerateEntireKey(fatherKey *PublicKey, priKey []byte, id uint32) *PrivateK
 
 // GenerateMsk 生成并导入第id个主密钥
 func GenerateMsk(client *rpcclient.Client, skroot *PrivateKey, id int, netType string) (*PrivateKey, error) {
-	msk, _ := skroot.ChildPrivateKeyDeprive(uint32(id))
+	msk, _ := skroot.ChildPrivateKeyDeprive(uint32(id), netType)
 	err := ImportKey(client, msk, netType)
 	if err != nil {
 		return nil, err
