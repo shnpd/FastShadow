@@ -10,11 +10,7 @@
   <component name="ChangeListManager">
     <list default="true" id="8074cf3a-9466-4396-ba19-31c082b552aa" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EmbedMsg/EmbedComplete.go" beforeDir="false" afterPath="$PROJECT_DIR$/EmbedMsg/EmbedComplete.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ExtractMsg/ExtractComplete.go" beforeDir="false" afterPath="$PROJECT_DIR$/ExtractMsg/ExtractComplete.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/RPC/Client.go" beforeDir="false" afterPath="$PROJECT_DIR$/RPC/Client.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Transaction/Transaction.go" beforeDir="false" afterPath="$PROJECT_DIR$/Transaction/Transaction.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Transfer/transfer.go" beforeDir="false" afterPath="$PROJECT_DIR$/Transfer/transfer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TimeCost/Embed/EmbedComplete.go" beforeDir="false" afterPath="$PROJECT_DIR$/TimeCost/Embed/EmbedComplete.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -135,7 +131,7 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="Go Build.go build covertCommunication/ExtractMsg">
+  <component name="RunManager" selected="Go Build.go build covertCommunication/TimeCost/Embed">
     <configuration default="true" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <working_directory value="$PROJECT_DIR$" />
       <kind value="FILE" />
@@ -198,9 +194,9 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Build.go build covertCommunication/TimeCost/Embed" />
         <item itemvalue="Go Build.go build covertCommunication/ExtractMsg" />
         <item itemvalue="Go Build.go build covertCommunication/EmbedMsg" />
-        <item itemvalue="Go Build.go build covertCommunication/TimeCost/Embed" />
         <item itemvalue="Go Build.go build covertCommunication/Test" />
         <item itemvalue="Go Build.go build scratch_9.go (2)" />
       </list>
@@ -266,14 +262,14 @@
           <option name="timeStamp" value="40" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/TimeCost/Embed/EmbedComplete.go</url>
-          <line>72</line>
-          <option name="timeStamp" value="42" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/EmbedMsg/EmbedComplete.go</url>
           <line>40</line>
           <option name="timeStamp" value="43" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/TimeCost/Embed/EmbedComplete.go</url>
+          <line>63</line>
+          <option name="timeStamp" value="44" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
